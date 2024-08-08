@@ -107,15 +107,8 @@ int main(void)
         glfwTerminate();
         return -1;
     }
-    
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-
-    glFrontFace(GL_CCW);
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
 
     //Sposta il contesto (il focus di Windows) sulla finestra creata
     //Il codice successivo effettuerà tutte le operazioni solo su questa finestra
@@ -128,7 +121,7 @@ int main(void)
     }
 
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -196,7 +189,7 @@ int main(void)
     //in modo che le distanze tra loro non vengano alterate
     //glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f); //Matrice con formato 4:3
 
-    glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, -200.0f, 200.0f);
+    glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 0.0f, 0.1f);
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 500.0f, -1500.0f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 
     //La view matrix riguarda la posizione della telecamera
@@ -236,6 +229,7 @@ int main(void)
 
     glm::vec3 translation(0.0, 0, 0);
     float rot = 0.0f;
+    float speed = 0.0f;
 
     //Il ciclo continua finché l'utente non chiude la finestra
     while (!glfwWindowShouldClose(window))
@@ -251,13 +245,12 @@ int main(void)
 
         //La model matrix sposta gli oggetti nella scena 
         glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
-        rot = rot + 0.01f;
+        rot = rot + speed;
         model = glm::rotate(model, rot, glm::vec3(0.0, 1.0, 0.0));
         glm::mat4 mvp = proj * view * model;    //L'ordine dei prodotti è importante
         shader.setUniformMat4f("u_MVP", mvp);
 
 
-        shader.bind();
         //shader.setUniform4f("u_color", r, 0.3f, 0.8f, 1.0f);
 
         //Dice ad OpenGL di disegnare gli elementi scritti nel buffer, interpretandoli come un triangolo
@@ -274,6 +267,7 @@ int main(void)
         {   //Finestra di ImGui
             static float f = 0.0f;
             ImGui::SliderFloat3("Translation", &translation.x, -1000.0f, 1000.0f);
+            ImGui::SliderFloat("Rotation", &speed, -0.01f, 0.01f);
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         }
             

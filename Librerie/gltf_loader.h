@@ -1,5 +1,10 @@
 #pragma once
-#include <tinygltf/tiny_gltf.h>
+//#define STB_IMAGE_STATIC
+#include "tinygltf/tiny_gltf.h"
+//#include "tinygltf/stb_image.h"
+//#include "tinygltf/stb_image_write.h"
+//#include "tinygltf/json.hpp"
+
 
 
 #include "texture.h"
@@ -246,7 +251,7 @@ struct gltf_loader {
 
 			int x, y;
 			int  channels_in_file;
-			stbi_uc* data = stbi_load_from_memory(v_ptr, bufferview.byteLength, &x, &y, &channels_in_file, image.component);
+			unsigned char* data = (unsigned char*) stbi_load_from_memory(v_ptr, bufferview.byteLength, &x, &y, &channels_in_file, image.component);
 
 //			stbi_write_png("read_texture.png", x, y, 4, data, 0);
 

@@ -14,6 +14,11 @@
 #include "Librerie/GLM/gtc/matrix_transform.hpp"
 #include "Librerie/ImGui/imgui.h"
 #include "Librerie/ImGui/imgui_impl_glfw_gl3.h"
+/*#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define TINYGLTF_IMPLEMENTATION
+#include "Librerie/gltf_loader.h"
+#include "Librerie/renderable.h"*/    
 
 #define N_PUNTI 101
 #define PPT 10
@@ -33,7 +38,7 @@ float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indi
 
     if (!mappa_di_altezze.is_open())
     {
-        perror("COGLIONE DI MERDA");
+        perror("Impossibile aprire la mappa di altezze");
         exit(EXIT_FAILURE);
     }
 
@@ -65,11 +70,6 @@ float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indi
             grid[(i * N_PUNTI + j) * 5 + 4] = float(j) / PPT;
         }
     }
-
-    //Definisce l'indexBuffer
-
-
-    
 
     for (int i = 0; i < N_PUNTI - 1; i++)
     {
@@ -189,7 +189,7 @@ int main(void)
     //in modo che le distanze tra loro non vengano alterate
     //glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f); //Matrice con formato 4:3
 
-    glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 0.0f, 0.1f);
+    glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 0.000001f, 100.0f);
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 500.0f, -1500.0f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 
     //La view matrix riguarda la posizione della telecamera
@@ -231,6 +231,17 @@ int main(void)
     float rot = 0.0f;
     float speed = 0.0f;
 
+    //--------------------------------------
+    /*gltf_loader gltfL;
+
+    box3 bbox;
+    vector <renderable> obj;
+
+    // load a gltf scene into a vector of objects of type renderable "obj"
+    // alo return a box containing the whole scene
+    gltfL.load_to_renderable("res/car0.glb", obj, bbox);*/
+    //------------------------------------------
+
     //Il ciclo continua finché l'utente non chiude la finestra
     while (!glfwWindowShouldClose(window))
     {
@@ -255,6 +266,7 @@ int main(void)
 
         //Dice ad OpenGL di disegnare gli elementi scritti nel buffer, interpretandoli come un triangolo
         renderer.draw(va, ib, shader);
+        //glDrawElements(obj[0]().mode, obj[0]().count, obj[0]().itype, 0);
 
 
         /*if (r > 1.0f)

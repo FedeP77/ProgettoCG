@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <glm/glm.hpp>  
+#include "GLM/glm.hpp"
 
 struct box3
 {

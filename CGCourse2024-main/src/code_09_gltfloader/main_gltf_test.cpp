@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <GLFW/glfw3.h>
 #include <string>
 #include <iostream>

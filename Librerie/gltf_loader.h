@@ -5,10 +5,10 @@
 //#include "tinygltf/stb_image_write.h"
 //#include "tinygltf/json.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define TINYGLTF_IMPLEMENTATION
-#include "stb_image.h"
+//#define STB_IMAGE_IMPLEMENTATION
+//#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#define TINYGLTF_IMPLEMENTATION
+//#include "stb_image.h"
 
 //#include "Custom/Texture.h"
 #include "renderable.h"

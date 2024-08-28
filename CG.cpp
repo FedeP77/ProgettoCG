@@ -1,7 +1,7 @@
 #include <GL/glew.h>
-//#define STB_IMAGE_IMPLEMENTATION
-//#define STB_IMAGE_WRITE_IMPLEMENTATION
-//#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define TINYGLTF_IMPLEMENTATION
 //#include "stb_image.h"
 #include "Librerie/gltf_loader.h"
 #include <iostream>
@@ -236,7 +236,7 @@ int main(void)
     float speed = 0.0f;
 
     //--------------------------------------
-    //gltf_loader gltfL; 
+    gltf_loader gltfL; 
     /*
 
     box3 bbox;

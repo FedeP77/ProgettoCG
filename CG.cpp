@@ -1,4 +1,9 @@
 #include <GL/glew.h>
+//#define STB_IMAGE_IMPLEMENTATION
+//#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#define TINYGLTF_IMPLEMENTATION
+//#include "stb_image.h"
+#include "Librerie/gltf_loader.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -9,16 +14,12 @@
 #include "IndexBuffer.h"
 #include "VertexArray.h"
 #include "Shader.h"
-#include "Texture.h"
+#include "Custom/Texture.h"
 #include "Librerie/GLM/glm.hpp"
 #include "Librerie/GLM/gtc/matrix_transform.hpp"
 #include "Librerie/ImGui/imgui.h"
 #include "Librerie/ImGui/imgui_impl_glfw_gl3.h"
-/*#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define TINYGLTF_IMPLEMENTATION
-#include "Librerie/gltf_loader.h"
-#include "Librerie/renderable.h"*/    
+//#include "Librerie/renderable.h"   
 
 #define N_PUNTI 101
 #define PPT 10
@@ -26,6 +27,9 @@
 #define MAX_HEIGHT 300.f
 
 using namespace std;
+
+
+
 
 float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indici[], string filename) {
     //La griglia è NxN punti
@@ -189,7 +193,7 @@ int main(void)
     //in modo che le distanze tra loro non vengano alterate
     //glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f); //Matrice con formato 4:3
 
-    glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 0.000001f, 100.0f);
+    glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 100.0f, 4000.0f);
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 500.0f, -1500.0f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 
     //La view matrix riguarda la posizione della telecamera
@@ -205,7 +209,7 @@ int main(void)
 
     //Carica la texture dal file e la collega
     Texture texture("res/grass_tile.png");
-    texture.bind();
+    texture.bind(0);
 
     //Uniform da passare allo shader per renderizzare la texture
     //Lo uniform conterrà la texture che abbiamo inserito nello slot specificato (con il texture.bind())
@@ -232,7 +236,8 @@ int main(void)
     float speed = 0.0f;
 
     //--------------------------------------
-    /*gltf_loader gltfL;
+    //gltf_loader gltfL; 
+    /*
 
     box3 bbox;
     vector <renderable> obj;
@@ -241,7 +246,7 @@ int main(void)
     // alo return a box containing the whole scene
     gltfL.load_to_renderable("res/car0.glb", obj, bbox);*/
     //------------------------------------------
-
+    //LeEva_ è stato quì
     //Il ciclo continua finché l'utente non chiude la finestra
     while (!glfwWindowShouldClose(window))
     {

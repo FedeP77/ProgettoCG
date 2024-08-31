@@ -156,7 +156,11 @@
     <ClInclude Include="VertexBufferLayout.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\circle_pattern_thicker.csv" />
     <None Include="res\mappa_altezze.csv" />
+    <None Include="res\mappa_altezze_modificato.csv" />
+    <None Include="res\mappa_altezze_troncato.csv" />
+    <None Include="Shader\objectShader.shader" />
     <None Include="Shader\vertexfragment.shader" />
   </ItemGroup>
   <ItemGroup>

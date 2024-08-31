@@ -8,6 +8,8 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <GLFW/glfw3.h>
 #include "Renderer.h"
 #include "VertexBuffer.h"
@@ -19,17 +21,16 @@
 #include "Librerie/GLM/gtc/matrix_transform.hpp"
 #include "Librerie/ImGui/imgui.h"
 #include "Librerie/ImGui/imgui_impl_glfw_gl3.h"
+#include "matrix_stack.h"
 //#include "Librerie/renderable.h"   
 
 #define N_PUNTI 101
 #define PPT 10
+#define P_CERCH 500
 
 #define MAX_HEIGHT 300.f
 
 using namespace std;
-
-
-
 
 float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indici[], string filename) {
     //La griglia è NxN punti
@@ -77,9 +78,9 @@ float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indi
 
     for (int i = 0; i < N_PUNTI - 1; i++)
     {
-        for (int j = 0; j < N_PUNTI-1; j++)
+        for (int j = 0; j < N_PUNTI - 1; j++)
         {
-            indici[6 * (N_PUNTI - 1) *i + 6 * j + 0] = i * N_PUNTI + j + 0;
+            indici[6 * (N_PUNTI - 1) * i + 6 * j + 0] = i * N_PUNTI + j + 0;
             indici[6 * (N_PUNTI - 1) *i + 6 * j + 1] = i * N_PUNTI + j + 1;
             indici[6 * (N_PUNTI - 1) * i + 6 * j + 2] = i * N_PUNTI + j + N_PUNTI;
 
@@ -90,6 +91,73 @@ float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indi
     }
 
     return grid;
+}
+
+glm::vec2 genCyrcle(float t) {
+    float r = 470.0f;
+
+    float x = r * cos(t);
+    float y = r * sin(t);   //Z
+
+    return glm::vec2(x, y);
+}
+
+void genRoad(float road[], unsigned int ind_road[], float width, int numPunti) {
+    //numPunti è il numero di punti di cui è composto il cerchio base usato per creare la strada
+    //In tutto, per la strada saranno generati (numPunti)*2 punti
+
+    int dim = (numPunti * 2) * 5;
+
+    float passo = 2 * M_PI / numPunti;
+    float t = 0.0f;
+
+    int k = 0;
+
+    for (int i = 0; i < numPunti; i++) {
+        t = i * passo;
+
+        glm::vec2 centro = genCyrcle(t);                    //Calcola il punto centrale della strada
+        glm::vec2 nextCentro = genCyrcle(t + passo);        //Serve a calcolare la normale
+
+        glm::vec2 tangente = glm::normalize(nextCentro - centro);
+        glm::vec2 normale = glm::vec2(-tangente.y, tangente.x);
+
+        glm::vec2 sx = centro + normale * (width / 2.0f);   //Vertice a "sx" del punto centrale
+        glm::vec2 dx = centro - normale * (width / 2.0f);   //Vertice a "dx" del punto centrale
+
+        road[k + 0] = sx.x;
+        road[k + 1] = 0.01f;
+        road[k + 2] = sx.y;
+        road[k + 3] = 0.0f; 
+        road[k + 4] = t; 
+        
+        road[k + 5] = dx.x;
+        road[k + 6] = 0.01f;
+        road[k + 7] = dx.y;
+        road[k + 8] = 1.0f; 
+        road[k + 9] = t; 
+
+        k += 10;
+    }
+
+    //Calcolo dei punti per l'IndexBuffer
+    for (int i = 0; i < numPunti - 1; i++) {
+        ind_road[(i * 6) + 0] = (i * 2) + 1;
+        ind_road[(i * 6) + 1] = (i * 2) + 0;
+        ind_road[(i * 6) + 2] = (i * 2) + 2;
+
+        ind_road[(i * 6) + 3] = (i * 2) + 1;
+        ind_road[(i * 6) + 4] = (i * 2) + 2;
+        ind_road[(i * 6) + 5] = (i * 2) + 3;
+    }
+
+    ind_road[((numPunti - 1) * 6) + 0] = ((numPunti - 1) * 2) + 1;
+    ind_road[((numPunti - 1) * 6) + 1] = ((numPunti - 1) * 2) + 0;
+    ind_road[((numPunti - 1) * 6) + 2] = 0;
+
+    ind_road[((numPunti - 1) * 6) + 3] = ((numPunti - 1) * 2) + 1;
+    ind_road[((numPunti - 1) * 6) + 4] = 0;
+    ind_road[((numPunti - 1) * 6) + 5] = 1;
 }
 
 int main(void)
@@ -151,12 +219,12 @@ int main(void)
     //Per evitare di duplicare i punti nell'array positions, si crea un indexBuffer, in cui si indicano le posizioni
     //dei punti da usare per creare ciascun elemento
     //PER L'INDEX BUFFER
-    unsigned int indici[(N_PUNTI-1) * (N_PUNTI - 1)*6];
+    unsigned int indici[(N_PUNTI - 1) * (N_PUNTI - 1) * 6];
 
     float lato = 10.f;
 
     float positions[N_PUNTI * N_PUNTI * 5];
-    genGrid(positions, lato, indici, "res/mappa_altezze.csv");
+    genGrid(positions, lato, indici, "res/mappa_altezze_modificato.csv");
 
 
     //Funzione di blend per far funzionare anche le texture semi-trasparenti
@@ -236,18 +304,42 @@ int main(void)
     float speed = 0.0f;
 
     //--------------------------------------
-    gltf_loader gltfL; 
-    /*
+    //CARICAMENTO GLTF
+    //--------------------------------------
 
+    gltf_loader gltfL; 
+    
     box3 bbox;
     vector <renderable> obj;
 
+    glActiveTexture(GL_TEXTURE1);
+
     // load a gltf scene into a vector of objects of type renderable "obj"
     // alo return a box containing the whole scene
-    gltfL.load_to_renderable("res/car0.glb", obj, bbox);*/
+    gltfL.load_to_renderable("res/car0.glb", obj, bbox);
+
     //------------------------------------------
     //LeEva_ è stato quì
-    //Il ciclo continua finché l'utente non chiude la finestra
+
+
+    //Creazione della strada
+    float road[(P_CERCH * 2) * 5];
+    unsigned int ind_road[P_CERCH * 2 * 3];
+    genRoad(road, ind_road, 50.0f, P_CERCH);
+
+    VertexArray va_road;
+    VertexBuffer vb_road(road, ((P_CERCH * 2) * 5) * sizeof(float));
+
+    va_road.addBuffer(vb_road, layout);
+
+    IndexBuffer ib_road(ind_road, P_CERCH * 2 * 3);
+
+    Texture tex_road("res/street_tile.png");
+    tex_road.bind(1);
+
+    //Fattore di scalatura per la macchina 
+    float scale_factor = 100.0f;
+
     while (!glfwWindowShouldClose(window))
     {
         //Pulisci il buffer dei colori (Preparazione dell'ambiente di rendering)
@@ -266,20 +358,29 @@ int main(void)
         glm::mat4 mvp = proj * view * model;    //L'ordine dei prodotti è importante
         shader.setUniformMat4f("u_MVP", mvp);
 
+        //shader.setUniform4f("u_color", 0.0f, 0.0f, 1.0f, 1.0f);
 
-        //shader.setUniform4f("u_color", r, 0.3f, 0.8f, 1.0f);
-
-        //Dice ad OpenGL di disegnare gli elementi scritti nel buffer, interpretandoli come un triangolo
+        //Rendering del terreno
+        shader.setUniform1i("u_texture", 0);
         renderer.draw(va, ib, shader);
-        //glDrawElements(obj[0]().mode, obj[0]().count, obj[0]().itype, 0);
 
+        //Rendering della strada
+        shader.setUniform1i("u_texture", 1);
+        renderer.draw(va_road, ib_road, shader);
 
-        /*if (r > 1.0f)
-            increment = -0.5f;
-        else if (r < 0.0f)
-            increment = 0.05f;
+        //Rendering di una macchina
+        for (unsigned int i = 0; i < obj.size(); ++i) {
+            obj[i].bind();
 
-        r += increment;*/
+            //Scalatura e rotazione della macchina
+            glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale_factor, scale_factor, scale_factor));
+            glm::mat4 modelMatrix = obj[i].transform * scaleMatrix;
+            modelMatrix = glm::rotate(modelMatrix, rot, glm::vec3(0.0, 1.0, 0.0));
+            mvp = proj * view * modelMatrix;
+            shader.setUniformMat4f("u_MVP", mvp);
+            
+            glDrawElements(obj[i]().mode, obj[i]().count, obj[i]().itype, 0);
+        }
 
         {   //Finestra di ImGui
             static float f = 0.0f;

@@ -48,7 +48,7 @@ int main(int arcgc, char**argv)
     printout_opengl_glsl_info();
 
 	shader basic_shader;
-    basic_shader.create_program("shaders/basic.vert", "shaders/basic.frag");
+    basic_shader.create_program("CGCourse2024-main/src/code_09_gltfloader/shaders/basic.vert", "CGCourse2024-main/src/code_09_gltfloader/shaders/basic.frag");
 
 	check_gl_errors(__LINE__, __FILE__);
 
@@ -61,7 +61,7 @@ int main(int arcgc, char**argv)
 
 	// load a gltf scene into a vector of objects of type renderable "obj"
 	// alo return a box containing the whole scene
-	gltfL.load_to_renderable(argv[1],obj, bbox);
+	gltfL.load_to_renderable("CGCourse2024-main/src/code_09_gltfloader/car0.glb",obj, bbox);
 
 	glm::mat4 proj = glm::perspective(glm::radians(45.f), 1.f, 0.2f, 20.f);
 	glm::mat4 view = glm::lookAt(glm::vec3(0, 1, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));

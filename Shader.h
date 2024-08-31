@@ -48,6 +48,10 @@ public:
 		glUniform4f(getUniformLocation(name), v0, v1, v2, v3);
 	}
 
+    void setUniform3f(const string& name, float v0, float v1, float v2) {
+        glUniform3f(getUniformLocation(name), v0, v1, v2);
+    }
+
 	void setUniform1i(const string& name, int value) {
 		glUniform1i(getUniformLocation(name), value);
 	}

@@ -233,10 +233,10 @@ int main(void)
 
     //Si crea il vertex array object. Questo è un oggetto alla quale poi si collega il buffer e l'indexBuffer
     //Il VertexArrayObject è una specie di array che contiene tutti i buffer che vengono generati e li collega insieme
-    VertexArray va;
+    VertexArray va_terrain;
 
     //Crea il VertexBuffer
-    VertexBuffer vb(positions, N_PUNTI * N_PUNTI * 5 * sizeof(float));
+    VertexBuffer vb_terrain(positions, N_PUNTI * N_PUNTI * 5 * sizeof(float));
 
     //Crea l'oggetto che definisce come è strutturato il vertexBuffer
     //Specifica quanti attributi hanno i vertici (in questo caso 2, ovvero le coordinate x e y)
@@ -246,12 +246,12 @@ int main(void)
     layout.push(GL_FLOAT, 2);
 
     //Nel VertexArray, collega il vertexBuffer ai layout che ho definito
-    va.addBuffer(vb, layout);
+    va_terrain.addBuffer(vb_terrain, layout);
 
 
     //Crea l'IndexBuffer
     //Specifica, tramite un array di indici, quali vertici compongono ciascun oggetto da renderizzare
-    IndexBuffer ib(indici, (N_PUNTI - 1) * (N_PUNTI - 1) * 6);
+    IndexBuffer ib_terrain(indici, (N_PUNTI - 1) * (N_PUNTI - 1) * 6);
 
     //Crea una matrice di proiezione 4x4
     //rispetto ai lati della finestra: (sinistra, destra, sotto, sopra, vicino, lontano)
@@ -289,9 +289,9 @@ int main(void)
     //Si toglie tutto perché è meglio collegarli frame per frame
     //Immagino che torna comodo quando c'è da fare cambiamenti tra frame
     shader.unBind();
-    va.unBind();
-    vb.Unbind();
-    ib.unBind();
+    va_terrain.unBind();
+    vb_terrain.Unbind();
+    ib_terrain.unBind();
 
     Renderer renderer;
 
@@ -319,7 +319,6 @@ int main(void)
     gltfL.load_to_renderable("res/car0.glb", obj, bbox);
 
     //------------------------------------------
-    //LeEva_ è stato quì
 
 
     //Creazione della strada
@@ -338,7 +337,10 @@ int main(void)
     tex_road.bind(1);
 
     //Fattore di scalatura per la macchina 
-    float scale_factor = 100.0f;
+    float scale_factor = 10.0f;
+
+    glm::vec3 objTranslation(460.0f, 5.0f, 0.0f);
+    float objRot = 1.0f;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -354,7 +356,8 @@ int main(void)
         //La model matrix sposta gli oggetti nella scena 
         glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
         rot = rot + speed;
-        model = glm::rotate(model, rot, glm::vec3(0.0, 1.0, 0.0));
+        view = glm::rotate(view, rot, glm::vec3(0.0, 1.0, 0.0));
+        rot = 0.0f;
         glm::mat4 mvp = proj * view * model;    //L'ordine dei prodotti è importante
         shader.setUniformMat4f("u_MVP", mvp);
 
@@ -362,31 +365,68 @@ int main(void)
 
         //Rendering del terreno
         shader.setUniform1i("u_texture", 0);
-        renderer.draw(va, ib, shader);
+        renderer.draw(va_terrain, ib_terrain, shader);
 
         //Rendering della strada
         shader.setUniform1i("u_texture", 1);
         renderer.draw(va_road, ib_road, shader);
 
         //Rendering di una macchina
+        objRot -= 0.5f;
         for (unsigned int i = 0; i < obj.size(); ++i) {
             obj[i].bind();
 
             //Scalatura e rotazione della macchina
             glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale_factor, scale_factor, scale_factor));
-            glm::mat4 modelMatrix = obj[i].transform * scaleMatrix;
-            modelMatrix = glm::rotate(modelMatrix, rot, glm::vec3(0.0, 1.0, 0.0));
-            mvp = proj * view * modelMatrix;
+            //Sposta la macchina sulla strada
+            glm::mat4 model_car = glm::translate(obj[i].transform, objTranslation);
+            //Sposto la macchina insieme al terreno
+            model_car = glm::translate(model_car, translation);
+            //Scalo la macchina
+            model_car = model_car * scaleMatrix;
+            //Ruoto la macchina in base al centro del mondo
+            glm::mat4 view_car = view;
+            view_car = glm::rotate(view_car, glm::radians(objRot), glm::vec3(0.0f, 1.0f, 0.0f));
+
+            //Crea la matrice ModelViewProjection della macchina
+            mvp = proj * view_car * model_car;
             shader.setUniformMat4f("u_MVP", mvp);
             
             glDrawElements(obj[i]().mode, obj[i]().count, obj[i]().itype, 0);
         }
 
         {   //Finestra di ImGui
-            static float f = 0.0f;
+            //Gestione della posizione della scena con i tasti della tastiera
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+                translation.z -= 1.0f;
+            }
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+                translation.z += 1.0f;
+            }
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+                translation.x += 1.0f;
+            }
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+                translation.x -= 1.0f;
+            }
+
+            //Gestione della rotazione della scena con i tasti della tastiera
+            if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
+                speed = -0.005f;
+            }else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+                speed = 0.005f;
+            }
+            else {
+                speed = 0.0f;
+            }
+
+            //Si può anche cambiare tutti con gli slider
             ImGui::SliderFloat3("Translation", &translation.x, -1000.0f, 1000.0f);
             ImGui::SliderFloat("Rotation", &speed, -0.01f, 0.01f);
+            //Testi visualizzati da ImGui per l'utente
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::Text("Sposta la scena con WASD");
+            ImGui::Text("Ruota la scena con ZX");
         }
             
         ImGui::Render();

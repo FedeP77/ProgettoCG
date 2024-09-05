@@ -53,18 +53,6 @@ float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indi
         stringstream lineStream(line);
 
         for (int j = 0; j < N_PUNTI; j++) {
-            
-            //Genera i 4 vertici di ogni quadrato
-            /*
-            for (int m = 0; m < 4; m++) {
-                grid[k] = sqr[m * 5] + incrX;        // x
-                grid[k + 1] = sqr[m * 5 + 1];        // y
-                grid[k + 2] = sqr[m * 5 + 2] + incrZ; // z
-                grid[k + 3] = sqr[m * 5 + 3];        // t1
-                grid[k + 4] = sqr[m * 5 + 4];        // t2
-                k += 5;
-            }
-            */
 
             getline(lineStream, cell, ',');
 
@@ -199,6 +187,8 @@ int main(void)
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+    
+
     //Array che contiene le coordinate (e altri dati) dei punti
     //PER IL VERTEX BUFFER
     float sqr[] = {
@@ -224,7 +214,7 @@ int main(void)
     float lato = 10.f;
 
     float positions[N_PUNTI * N_PUNTI * 5];
-    genGrid(positions, lato, indici, "res/mappa_altezze_modificato.csv");
+    genGrid(positions, lato, indici, "res/maps/mappa_altezze_modificato.csv");
 
 
     //Funzione di blend per far funzionare anche le texture semi-trasparenti
@@ -276,7 +266,7 @@ int main(void)
     //shader.setUniform4f("u_color", 0.8f, 0.3f, 0.8f, 1.0f);
 
     //Carica la texture dal file e la collega
-    Texture texture("res/grass_tile.png");
+    Texture texture("res/textures/grass_tile.png");
     texture.bind(0);
 
     //Uniform da passare allo shader per renderizzare la texture
@@ -316,7 +306,7 @@ int main(void)
 
     // load a gltf scene into a vector of objects of type renderable "obj"
     // alo return a box containing the whole scene
-    gltfL.load_to_renderable("res/car0.glb", obj, bbox);
+    gltfL.load_to_renderable("res/glbModels/car0.glb", obj, bbox);
 
     //------------------------------------------
 
@@ -333,13 +323,14 @@ int main(void)
 
     IndexBuffer ib_road(ind_road, P_CERCH * 2 * 3);
 
-    Texture tex_road("res/street_tile.png");
+    Texture tex_road("res/textures/street_tile.png");
     tex_road.bind(1);
 
     //Fattore di scalatura per la macchina 
     float scale_factor = 10.0f;
 
     glm::vec3 objTranslation(460.0f, 5.0f, 0.0f);
+    //objTranslation = glm::vec3(0.0f, 0.0f, 0.0f);
     float objRot = 1.0f;
 
     while (!glfwWindowShouldClose(window))
@@ -375,6 +366,13 @@ int main(void)
         objRot -= 0.5f;
         for (unsigned int i = 0; i < obj.size(); ++i) {
             obj[i].bind();
+
+            // Binding delle texture
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, obj[i].mater.base_color_texture);
+            shader.setUniform1i("u_texture", 2);
+
+            //cout << obj[i].mater.base_color_texture << endl;
 
             //Scalatura e rotazione della macchina
             glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale_factor, scale_factor, scale_factor));

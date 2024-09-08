@@ -30,8 +30,8 @@ public:
 		//quindi specificare più di un layout
 		for (unsigned int i = 0; i < elements.size(); i++) {
 			const auto& element = elements[i];
-			glEnableVertexAttribArray(i);	//Qui dovrebbe servire la i e non 0
-			glVertexAttribPointer(i, element.count, element.type, element.normalized, layout.getStride(), (const void*)offset);
+			glEnableVertexAttribArray(i*4);	//Qui dovrebbe servire la i e non 0
+			glVertexAttribPointer(i*4, element.count, element.type, element.normalized, layout.getStride(), (const void*)offset);
 			offset += element.count * VertexBufferElement::getSizeOfType(element.type);
 		}
 

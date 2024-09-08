@@ -187,7 +187,8 @@ int main(void)
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    
+    glEnable(GL_MULTISAMPLE);
+    glActiveTexture(GL_TEXTURE0);
 
     //Array che contiene le coordinate (e altri dati) dei punti
     //PER IL VERTEX BUFFER
@@ -263,6 +264,23 @@ int main(void)
     Shader shader("Shader/vertexfragment.shader");
     shader.bind();
 
+    float a_color[3] = { 0.15f,0.15f,0.15f };   //Ambient
+    float d_color[3] = { 0.1f,0.1f,0.1f };      //Diffuse
+    float s_color[3] = { 0.1f,0.1f,0.1f };      //Specular
+    //float e_color[3] = { 0.5f,0.1f,0.2f };      //Emissive
+    float l_color[3] = { 0.9f,0.9f,0.9f };      //Light Color
+    float shininess = .0f;
+    float sun_brightness = 5.f;
+    glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
+    shader.setUniform3f("uAmbientColor", a_color);
+    shader.setUniform3f("uDiffuseColor", d_color);
+    shader.setUniform3f("uSpecularColor", s_color);
+    //shader.setUniform3f("uEmissiveColor", e_color);
+    shader.setUniform3f("uLightColor", l_color);
+    shader.setUniform1f("uShininess", shininess);
+    shader.setUniform3f("uLDir", Ldir.x, Ldir.y, Ldir.z);
+    shader.setUniform1f("light_brightness", sun_brightness);
+
     //shader.setUniform4f("u_color", 0.8f, 0.3f, 0.8f, 1.0f);
 
     //Carica la texture dal file e la collega
@@ -294,7 +312,7 @@ int main(void)
     float speed = 0.0f;
 
     //--------------------------------------
-    //CARICAMENTO GLTF
+    //CARICAMENTO GLTF (MACCHINA)
     //--------------------------------------
 
     gltf_loader gltfL; 
@@ -329,8 +347,8 @@ int main(void)
     //Fattore di scalatura per la macchina 
     float scale_factor = 10.0f;
 
-    glm::vec3 objTranslation(460.0f, 5.0f, 0.0f);
-    //objTranslation = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 objTranslation(47.0f, 0.3f, 0.0f);
+    //objTranslation = glm::vec3(100.0f, 300.0f, 0.0f);
     float objRot = 1.0f;
 
     while (!glfwWindowShouldClose(window))
@@ -345,12 +363,19 @@ int main(void)
         ImGui_ImplGlfwGL3_NewFrame();
 
         //La model matrix sposta gli oggetti nella scena 
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
+        glm::mat4 model = glm::mat4(1.0f);
         rot = rot + speed;
-        view = glm::rotate(view, rot, glm::vec3(0.0, 1.0, 0.0));
+        view = glm::translate(view, translation);
+        translation = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 view_trasl(view[3][0], view[3][1], view[3][2]);
+        view = glm::translate(glm::rotate(glm::translate(view, view_trasl), rot, glm::vec3(.0f, 1.f, .0f)), -view_trasl);
+
         rot = 0.0f;
         glm::mat4 mvp = proj * view * model;    //L'ordine dei prodotti è importante
         shader.setUniformMat4f("u_MVP", mvp);
+        shader.setUniformMat4f("uModel", model);
+        shader.setUniformMat4f("uView", view);
+        //shader.setUniformMat4f("uProj", proj);
 
         //shader.setUniform4f("u_color", 0.0f, 0.0f, 1.0f, 1.0f);
 
@@ -365,31 +390,30 @@ int main(void)
         //Rendering di una macchina
         objRot -= 0.5f;
         for (unsigned int i = 0; i < obj.size(); ++i) {
+            //Utilizza i buffer dell'oggetto
             obj[i].bind();
 
+            //Scala l'oggetto
+            glm::mat4 model_car = glm::scale(glm::mat4(1.0f), glm::vec3(scale_factor, scale_factor, scale_factor));
+            //Ruota l'oggetto progresstivamente
+            model_car = glm::rotate(model_car, glm::radians(objRot), glm::vec3(0.0f, 1.0f, 0.0f));
+            //Trasla l'oggetto nella posizione desiderata
+            model_car = glm::translate(model_car, objTranslation);
+            //Applica le trasformazioni specifiche dell'oggetto
+            model_car = model_car * obj[i].transform;
+
+            //Crea la matrice ModelViewProjection della macchina
+            mvp = proj * view * model_car;
+            shader.setUniformMat4f("u_MVP", mvp);
+            shader.setUniformMat4f("uModel", model_car);
+            shader.setUniformMat4f("uView", view);
+            //shader.setUniformMat4f("uProj", proj);
+            
             // Binding delle texture
             glActiveTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, obj[i].mater.base_color_texture);
             shader.setUniform1i("u_texture", 2);
 
-            //cout << obj[i].mater.base_color_texture << endl;
-
-            //Scalatura e rotazione della macchina
-            glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale_factor, scale_factor, scale_factor));
-            //Sposta la macchina sulla strada
-            glm::mat4 model_car = glm::translate(obj[i].transform, objTranslation);
-            //Sposto la macchina insieme al terreno
-            model_car = glm::translate(model_car, translation);
-            //Scalo la macchina
-            model_car = model_car * scaleMatrix;
-            //Ruoto la macchina in base al centro del mondo
-            glm::mat4 view_car = view;
-            view_car = glm::rotate(view_car, glm::radians(objRot), glm::vec3(0.0f, 1.0f, 0.0f));
-
-            //Crea la matrice ModelViewProjection della macchina
-            mvp = proj * view_car * model_car;
-            shader.setUniformMat4f("u_MVP", mvp);
-            
             glDrawElements(obj[i]().mode, obj[i]().count, obj[i]().itype, 0);
         }
 
@@ -402,11 +426,18 @@ int main(void)
                 translation.z += 1.0f;
             }
             if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-                translation.x += 1.0f;
-            }
-            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
                 translation.x -= 1.0f;
             }
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+                translation.x += 1.0f;
+            }
+            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+                translation.y -= 1.0f;
+            }
+            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+                translation.y += 1.0f;
+            }
+            
 
             //Gestione della rotazione della scena con i tasti della tastiera
             if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
@@ -423,8 +454,9 @@ int main(void)
             ImGui::SliderFloat("Rotation", &speed, -0.01f, 0.01f);
             //Testi visualizzati da ImGui per l'utente
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::Text("Sposta la scena con WASD");
-            ImGui::Text("Ruota la scena con ZX");
+            ImGui::Text("Sposta la telecamera con WASD");
+            ImGui::Text("Ruota la telecamera con ZX");
+            ImGui::Text("Alza/abbassa la telecamera con UP/DOWN");
         }
             
         ImGui::Render();

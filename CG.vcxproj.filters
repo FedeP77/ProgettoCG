@@ -77,23 +77,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\vertexfragment.shader" />
-    <None Include="res\mappa_altezze.csv" />
-    <None Include="res\mappa_altezze_modificato.csv" />
     <None Include="res\mappa_altezze_troncato.csv" />
-    <None Include="res\circle_pattern_thicker.csv" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="res\immagine.png">
-      <Filter>File di risorse</Filter>
-    </Image>
-    <Image Include="res\grass_tile.png">
-      <Filter>File di risorse</Filter>
-    </Image>
-    <Image Include="res\normal_map.jpg">
-      <Filter>File di risorse</Filter>
-    </Image>
-    <Image Include="res\street_tile.png">
-      <Filter>File di risorse</Filter>
-    </Image>
   </ItemGroup>
 </Project>

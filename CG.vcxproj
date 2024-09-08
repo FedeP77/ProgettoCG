@@ -156,17 +156,8 @@
     <ClInclude Include="VertexBufferLayout.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\circle_pattern_thicker.csv" />
-    <None Include="res\mappa_altezze.csv" />
-    <None Include="res\mappa_altezze_modificato.csv" />
     <None Include="res\mappa_altezze_troncato.csv" />
     <None Include="Shader\vertexfragment.shader" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="res\grass_tile.png" />
-    <Image Include="res\immagine.png" />
-    <Image Include="res\normal_map.jpg" />
-    <Image Include="res\street_tile.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

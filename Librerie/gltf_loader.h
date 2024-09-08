@@ -299,16 +299,16 @@ struct gltf_loader {
 				int index;
 				
 				index = mat.pbrMetallicRoughness.baseColorTexture.index;
-				std::cout << "BASE COLOR TEXTURE INDEX: " << index << std::endl;
+				//std::cout << "BASE COLOR TEXTURE INDEX: " << index << std::endl;
 				r.mater.base_color_texture = (index != -1)?this->id_textures[index]: this->id_textures[0];
 				//r.mater.base_color_texture = (index != -1)?this->id_textures[index]: -1;
 
 				index = mat.normalTexture.index;
-				std::cout << "NORMAL TEXTURE INDEX: " << index << std::endl;
+				//std::cout << "NORMAL TEXTURE INDEX: " << index << std::endl;
 				r.mater.normal_texture = (index != -1) ? this->id_textures[index] : -1;
 
 				index = mat.emissiveTexture.index;
-				std::cout << "EMISSIVE TEXTURE INDEX: " << index << std::endl;
+				//std::cout << "EMISSIVE TEXTURE INDEX: " << index << std::endl;
 				r.mater.emissive_texture = (index != -1) ? this->id_textures[index] : -1;
 			}
 		}

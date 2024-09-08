@@ -28,7 +28,9 @@ public:
 		//Crea lo shader, realizzando un program che contiene sia il vertexShader che il fragmentShader
 		m_rendererID = CreateShader(source.vertexSource, source.fragmentSource);
 
-
+        glBindAttribLocation(m_rendererID, 0, "position");
+        glBindAttribLocation(m_rendererID, 1, "texCoord");
+        glBindAttribLocation(m_rendererID, 2, "aNormal");
 	}
 
 	~Shader() {
@@ -50,6 +52,14 @@ public:
 
     void setUniform3f(const string& name, float v0, float v1, float v2) {
         glUniform3f(getUniformLocation(name), v0, v1, v2);
+    }
+
+    void setUniform3f(const string& name, float v[]) {
+        glUniform3f(getUniformLocation(name), v[0], v[1], v[2]);
+    }
+
+    void setUniform1f(const string& name, float v) {
+        glUniform1f(getUniformLocation(name), v);
     }
 
 	void setUniform1i(const string& name, int value) {

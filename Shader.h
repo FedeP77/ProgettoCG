@@ -57,6 +57,9 @@ public:
     void setUniform3f(const string& name, float v[]) {
         glUniform3f(getUniformLocation(name), v[0], v[1], v[2]);
     }
+    void setUniform3fv(const string& name, int num, glm::vec3 v[]) {
+        glUniform3fv(getUniformLocation(name), num, &v[0][0]);
+    }
 
     void setUniform1f(const string& name, float v) {
         glUniform1f(getUniformLocation(name), v);

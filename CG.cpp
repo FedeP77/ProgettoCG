@@ -29,6 +29,7 @@
 #define P_CERCH 500
 
 #define MAX_HEIGHT 300.f
+#define NUM_LIGHTS 8
 
 using namespace std;
 
@@ -251,20 +252,46 @@ int main(void)
     float d_color[3] = { 0.1f,0.1f,0.1f };      //Diffuse
     float s_color[3] = { 0.1f,0.1f,0.1f };      //Specular
     //float e_color[3] = { 0.5f,0.1f,0.2f };      //Emissive
-    float l_color[3] = { 0.9f,0.9f,0.9f };      //Light Color
+    //float l_color[3] = { 0.9f,0.9f,0.9f };      //Light Color
     float shininess = .0f;
     float sun_brightness = 5.f;
-    glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
+    //glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
     shader.setUniform3f("uAmbientColor", a_color);
     shader.setUniform3f("uDiffuseColor", d_color);
     shader.setUniform3f("uSpecularColor", s_color);
     //shader.setUniform3f("uEmissiveColor", e_color);
-    shader.setUniform3f("uLightColor", l_color);
+    //shader.setUniform3f("uLightColor", l_color);
     shader.setUniform1f("uShininess", shininess);
-    shader.setUniform3f("uLDir", Ldir.x, Ldir.y, Ldir.z);
+    //shader.setUniform3f("uLDir", Ldir.x, Ldir.y, Ldir.z);
     shader.setUniform1f("light_brightness", sun_brightness);
 
-    //shader.setUniform4f("u_color", 0.8f, 0.3f, 0.8f, 1.0f);
+    int num_lights = 8;
+    glm::vec3 light_pos[NUM_LIGHTS]{
+        glm::vec3(437.f, 75.f, 0.f),
+        glm::vec3(-437.f, 75.f, 0.f),
+        glm::vec3(0.f, 75.f, 437.f),
+        glm::vec3(0.f, 75.f, -437.f),
+
+        glm::vec3(309.f, 75.f, 309.f),
+        glm::vec3(-309.f, 75.f, 309.f),
+        glm::vec3(309.f, 75.f, -309.f),
+        glm::vec3(-309.f, 75.f, -309.f)
+    };
+
+    glm::vec3 light_color[NUM_LIGHTS]{
+        glm::vec3(0.9f, 0.9f, 0.9f),
+        glm::vec3(0.9f, 0.9f, 0.9f),
+        glm::vec3(0.9f, 0.9f, 0.9f),
+        glm::vec3(0.9f, 0.9f, 0.9f),
+        glm::vec3(0.9f, 0.9f, 0.9f),
+        glm::vec3(0.9f, 0.9f, 0.9f),
+        glm::vec3(0.9f, 0.9f, 0.9f),
+        glm::vec3(0.9f, 0.9f, 0.9f)
+    };
+
+    shader.setUniform3fv("uLightPos", num_lights, light_pos);
+    shader.setUniform3fv("uLightColor", num_lights, light_color);
+    shader.setUniform1i("numLights", num_lights);
 
     //Carica la texture dal file e la collega
     Texture texture("res/textures/grass_tile.png");
@@ -298,16 +325,25 @@ int main(void)
     //CARICAMENTO GLTF (MACCHINA)
     //--------------------------------------
 
-    gltf_loader gltfL; 
+    gltf_loader gltfL_car; 
     
-    box3 bbox;
-    vector <renderable> obj;
+    box3 bbox_car;
+    vector <renderable> car;
 
     glActiveTexture(GL_TEXTURE2);
 
     // load a gltf scene into a vector of objects of type renderable "obj"
     // alo return a box containing the whole scene
-    gltfL.load_to_renderable("res/glbModels/simple_sport_car.glb", obj, bbox);
+    gltfL_car.load_to_renderable("res/glbModels/simple_sport_car.glb", car, bbox_car);
+
+    //------------------------------------------
+    //CARICAMENTO GLTF (LAMPIONE)
+    //------------------------------------------
+    gltf_loader gltfL_lamp;
+
+    box3 bbox_lamp;
+    vector <renderable> lamp;
+    gltfL_lamp.load_to_renderable("res/glbModels/eng_street_lamp.glb", lamp, bbox_lamp);
 
     //------------------------------------------
 
@@ -359,8 +395,6 @@ int main(void)
         glm::mat4 mvp = proj * view * model;    //L'ordine dei prodotti è importante
         shader.setUniformMat4f("u_MVP", mvp);
         shader.setUniformMat4f("uModel", model);
-        shader.setUniformMat4f("uView", view);
-        //shader.setUniformMat4f("uProj", proj);
 
         //shader.setUniform4f("u_color", 0.0f, 0.0f, 1.0f, 1.0f);
 
@@ -375,13 +409,13 @@ int main(void)
         //Rendering di una macchina
         objRot -= 0.5f;
         glm::mat4 model_car;
-        for (unsigned int i = 0; i < obj.size(); ++i) {
+        for (unsigned int i = 0; i < car.size(); ++i) {
             //Utilizza i buffer dell'oggetto
-            obj[i].bind();
+            car[i].bind();
 
             // Binding delle texture
             glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, obj[i].mater.base_color_texture);
+            glBindTexture(GL_TEXTURE_2D, car[i].mater.base_color_texture);
             shader.setUniform1i("u_texture", 2);
 
             //Scala l'oggetto
@@ -391,17 +425,40 @@ int main(void)
             //Trasla l'oggetto nella posizione desiderata
             model_car = glm::translate(model_car, objTranslation);
             //Applica le trasformazioni specifiche dell'oggetto
-            model_car = model_car * obj[i].transform;
+            model_car = model_car * car[i].transform;
 
             //Crea la matrice ModelViewProjection della macchina
             mvp = proj * view * model_car;
             shader.setUniformMat4f("u_MVP", mvp);
             shader.setUniformMat4f("uModel", model_car);
-            shader.setUniformMat4f("uView", view);
             //shader.setUniformMat4f("uProj", proj);
             
 
-            glDrawElements(obj[i]().mode, obj[i]().count, obj[i]().itype, 0);
+            glDrawElements(car[i]().mode, car[i]().count, car[i]().itype, 0);
+        }
+
+        glm::mat4 model_lamp;
+        for (int j = 0; j < 8; j++) {
+
+
+            for (unsigned int i = 0; i < lamp.size(); ++i) {
+                lamp[i].bind();
+
+                glActiveTexture(GL_TEXTURE3);
+                glBindTexture(GL_TEXTURE_2D, lamp[i].mater.base_color_texture);
+                shader.setUniform1i("u_texture", 3);
+
+                model_lamp = glm::scale(glm::mat4(1.0f), glm::vec3(10, 10, 10));
+                model_lamp = glm::rotate(model_lamp, glm::radians((float)((360 / 8) * j)), glm::vec3(0.f, 1.f, 0.f));
+                model_lamp = glm::translate(model_lamp, glm::vec3(44.f, 0.f, 0.f));
+                model_lamp = model_lamp * lamp[i].transform;
+
+                mvp = proj * view * model_lamp;
+                shader.setUniformMat4f("u_MVP", mvp);
+                shader.setUniformMat4f("uModel", model_lamp);
+
+                glDrawElements(lamp[i]().mode, lamp[i]().count, lamp[i]().itype, 0);
+            }
         }
 
         {   //Finestra di ImGui

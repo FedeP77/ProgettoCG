@@ -190,23 +190,6 @@ int main(void)
     glEnable(GL_MULTISAMPLE);
     glActiveTexture(GL_TEXTURE0);
 
-    //Array che contiene le coordinate (e altri dati) dei punti
-    //PER IL VERTEX BUFFER
-    float sqr[] = {
-        -50.0f, 0.0f, -50.0f, 0.0f, 0.0f,
-         50.0f, 0.0f, -50.0f, 1.0f, 0.0f,
-         50.0f,  0.0f, 50.0f, 1.0f, 1.0f,
-        -50.0f,  0.0f, 50.0f, 0.0f, 1.0f
-    };
-
-    
-
-    //Il terzo e il quarto parametro sono le coordinate della texture: 
-    //il pixel in basso a sinistra è (0,0)
-    //il pixel in basso a destra è (1,0)
-    //il pixel in alto a destra è (1,1)
-    //il pixel in alto a sinistra è (0.1)
-
     //Per evitare di duplicare i punti nell'array positions, si crea un indexBuffer, in cui si indicano le posizioni
     //dei punti da usare per creare ciascun elemento
     //PER L'INDEX BUFFER
@@ -320,11 +303,11 @@ int main(void)
     box3 bbox;
     vector <renderable> obj;
 
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE2);
 
     // load a gltf scene into a vector of objects of type renderable "obj"
     // alo return a box containing the whole scene
-    gltfL.load_to_renderable("res/glbModels/car0.glb", obj, bbox);
+    gltfL.load_to_renderable("res/glbModels/simple_sport_car.glb", obj, bbox);
 
     //------------------------------------------
 
@@ -345,11 +328,13 @@ int main(void)
     tex_road.bind(1);
 
     //Fattore di scalatura per la macchina 
-    float scale_factor = 10.0f;
+    float scale_factor = 0.25f;
 
-    glm::vec3 objTranslation(47.0f, 0.3f, 0.0f);
-    //objTranslation = glm::vec3(100.0f, 300.0f, 0.0f);
+    glm::vec3 objTranslation(1875.0f, 50.f, 0.0f);
+    //objTranslation = glm::vec3(0.0f, 300.0f, 0.0f);
     float objRot = 1.0f;
+    bool camera_lock = false;
+    glm::vec3 old_pos(0.f, 0.f, 0.f);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -389,12 +374,18 @@ int main(void)
 
         //Rendering di una macchina
         objRot -= 0.5f;
+        glm::mat4 model_car;
         for (unsigned int i = 0; i < obj.size(); ++i) {
             //Utilizza i buffer dell'oggetto
             obj[i].bind();
 
+            // Binding delle texture
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, obj[i].mater.base_color_texture);
+            shader.setUniform1i("u_texture", 2);
+
             //Scala l'oggetto
-            glm::mat4 model_car = glm::scale(glm::mat4(1.0f), glm::vec3(scale_factor, scale_factor, scale_factor));
+            model_car = glm::scale(glm::mat4(1.0f), glm::vec3(scale_factor, scale_factor, scale_factor));
             //Ruota l'oggetto progresstivamente
             model_car = glm::rotate(model_car, glm::radians(objRot), glm::vec3(0.0f, 1.0f, 0.0f));
             //Trasla l'oggetto nella posizione desiderata
@@ -409,54 +400,79 @@ int main(void)
             shader.setUniformMat4f("uView", view);
             //shader.setUniformMat4f("uProj", proj);
             
-            // Binding delle texture
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, obj[i].mater.base_color_texture);
-            shader.setUniform1i("u_texture", 2);
 
             glDrawElements(obj[i]().mode, obj[i]().count, obj[i]().itype, 0);
         }
 
         {   //Finestra di ImGui
             //Gestione della posizione della scena con i tasti della tastiera
-            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-                translation.z -= 1.0f;
+            if (!camera_lock) {
+                if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+                    translation.z -= 2.0f;
+                }
+                if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+                    translation.z += 2.0f;
+                }
+                if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+                    translation.x -= 2.0f;
+                }
+                if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+                    translation.x += 2.0f;
+                }
+                if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+                    translation.y += 1.0f;
+                }
+                if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+                    translation.y -= 1.0f;
+                }
+
+
+                //Gestione della rotazione della scena con i tasti della tastiera
+                if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
+                    speed = -0.005f;
+                }
+                else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+                    speed = 0.005f;
+                }
+                else {
+                    speed = 0.0f;
+                }
             }
-            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-                translation.z += 1.0f;
+
+            if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+                camera_lock = false;
+                view = glm::lookAt(glm::vec3(0.0f, 500.0f, -1500.0f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
             }
-            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-                translation.x -= 1.0f;
+            if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+                camera_lock = false;
+                view = glm::lookAt(glm::vec3(-360.0f, 55.0f, -500.0f), glm::vec3(-350.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
             }
-            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-                translation.x += 1.0f;
+            if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+                speed = 0;
+                camera_lock = true;
             }
-            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-                translation.y -= 1.0f;
+
+            glm::vec3 car_pos(model_car[3][0], model_car[3][1], model_car[3][2]);
+            if (camera_lock) {
+                
+                view = glm::lookAt((car_pos - ((car_pos - old_pos) * 40.f)) + glm::vec3(0.f, 75.f, 0.f), car_pos, glm::vec3(0.f, 1.f, 0.f));
+                
             }
-            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-                translation.y += 1.0f;
-            }
+            old_pos = car_pos;
+
+
             
-
-            //Gestione della rotazione della scena con i tasti della tastiera
-            if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
-                speed = -0.005f;
-            }else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
-                speed = 0.005f;
-            }
-            else {
-                speed = 0.0f;
-            }
-
-            //Si può anche cambiare tutti con gli slider
-            ImGui::SliderFloat3("Translation", &translation.x, -1000.0f, 1000.0f);
-            ImGui::SliderFloat("Rotation", &speed, -0.01f, 0.01f);
             //Testi visualizzati da ImGui per l'utente
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::Text("----------------------------------------------------");
             ImGui::Text("Sposta la telecamera con WASD");
             ImGui::Text("Ruota la telecamera con ZX");
             ImGui::Text("Alza/abbassa la telecamera con UP/DOWN");
+            ImGui::Text("----------------------------------------------------");
+            ImGui::Text("GESTIONE INQUADRATURE (Premi il numero corrispondente:");
+            ImGui::Text("PREDEFINITO    --> 1");
+            ImGui::Text("STRADA (FIXED) --> 2");
+            ImGui::Text("MACCHINA       --> 3");
         }
             
         ImGui::Render();

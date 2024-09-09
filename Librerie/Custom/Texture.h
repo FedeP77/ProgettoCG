@@ -17,7 +17,7 @@ private:
 public:
     Texture(const string& path) : m_rendererID(0), m_filepath(path), m_localBuffer(nullptr), m_width(0), m_height(0), m_BPP(0) {
         //Inverte la texture specchiandola sull'asse y, perché OpenGL inizia a caricare i pixel dall'angolo in basso a sinistra
-        stbi_set_flip_vertically_on_load(1);
+        stbi_set_flip_vertically_on_load(0);
         //Carica la texture nel buffer locale
         m_localBuffer = stbi_load(path.c_str(), &m_width, &m_height, &m_BPP, 4);	//4 perché si usa il formato RGBA
 

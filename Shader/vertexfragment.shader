@@ -1,5 +1,5 @@
 #shader vertex
-#version 330 core
+#version 410 core
 
 layout(location = 0) in vec3 position;
 layout(location = 2) in vec3 aNormal;
@@ -50,7 +50,7 @@ void main()
 }
 	
 #shader fragment
-#version 330 core
+#version 410 core
 
 layout(location = 0) out vec4 color;
 
@@ -90,8 +90,7 @@ void main()
 	//color = u_color * v_position;
 
 	color = vec4(phong(vLDirVS,normalize(-vPosVS),normalize(vNormalVS)),1.0);
-	//color = texture2D(u_texture,v_texCoord.xy)*(color.x+color.y+color.z)/3.f;
-	vec4 t_color = texture(u_texture, v_texCoord.xy);
+	vec4 t_color = texture2D(u_texture, v_texCoord.xy);
 
 	color.x = color.x * t_color.x;
 	color.y = color.y * t_color.y;
@@ -99,4 +98,6 @@ void main()
 
 	color = normalize(color);
 	color = vec4(color.xyz * light_brightness, 1.f);
+
+	//color = t_color;
 }

@@ -241,7 +241,7 @@ int main(void)
     //in modo che le distanze tra loro non vengano alterate
     //glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f); //Matrice con formato 4:3
 
-    glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 100.0f, 4000.0f);
+    glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 10.0f, 4000.0f);
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 500.0f, -1500.0f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 
     //La view matrix riguarda la posizione della telecamera
@@ -261,6 +261,20 @@ int main(void)
     float shininess = .0f;
     float lamp_brightness = 5.f;
     glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
+
+    //TEXTURING PROIETTIVO
+	glm::mat4 fanale_sx = glm::lookAt(glm::vec3(0.0f, 500.0f, -1500.0f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+    glm::mat4 proj_fanale = glm::perspective(glm::radians(45.0f), 1.0f, 100.0f, 4000.0f);
+    //proj_fanale = glm::frustum(-10.f, 10.f, -5.f, 5.f, 100.f, 4000.f);
+	glm::vec3 offset_fanale_dx(1.f, .0f, .0f);
+
+    Texture fanali("res/textures/immagine.png");
+    fanali.bind(5);
+
+    shader.setUniformMat4f("view_fanale", fanale_sx);
+    shader.setUniformMat4f("proj_fanale", proj_fanale);
+    shader.setUniform1i("fanale_texture", 5);
+
     shader.setUniform3f("uAmbientColor", a_color);
     shader.setUniform3f("uDiffuseColor", d_color);
     shader.setUniform3f("uSpecularColor", s_color);
@@ -392,6 +406,7 @@ int main(void)
         glm::vec3(7.f, 3.75f, 8.f),
         glm::vec3(-6.f, 4.f, 10.f)
     };
+
 
     while (!glfwWindowShouldClose(window))
     {

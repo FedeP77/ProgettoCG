@@ -8,15 +8,22 @@ layout(location = 4) in vec2 texCoord;
 out vec2 v_texCoord;
 out vec3 vPosVS;
 out vec3 vNormalVS;
+out vec4 projTexCoords;
 
 uniform mat4 u_MVP;
 uniform mat4 uModel;
+
+uniform mat4 proj_fanale;
+uniform mat4 view_fanale;
 
 void main() {
     gl_Position = u_MVP * vec4(position, 1.0);
     v_texCoord = texCoord;
     vPosVS = (uModel * vec4(position, 1.0)).xyz;  // Trasformo la posizione del vertice nello spazio della vista
     vNormalVS = (uModel * vec4(aNormal, 0.0)).xyz;  // Normale nello spazio della vista
+
+    //Texturing proiettivo
+    projTexCoords = (proj_fanale * view_fanale) * (uModel * vec4(position, 1.0));
 }
 	
 #shader fragment
@@ -27,6 +34,7 @@ layout(location = 0) out vec4 color;
 in vec2 v_texCoord;
 in vec3 vPosVS;
 in vec3 vNormalVS;
+in vec4 projTexCoords;
 
 uniform sampler2D u_texture;
 
@@ -42,6 +50,12 @@ uniform vec3 uAmbientColor;
 uniform vec3 uSpecularColor;
 uniform float uShininess;
 uniform float lamp_brightness;
+
+uniform mat4 uHeadlightDir;
+uniform vec3 uHeadlightOffset;
+
+uniform sampler2D fanale_texture;
+
 
 vec3 phong(vec3 L, vec3 V, vec3 N, vec3 lightColor) {
     float LN = max(0.0, dot(L, N));
@@ -70,8 +84,13 @@ void main() {
 
     vec4 sun_contribution = vec4(phong(uLDir, V, N, uSunColor),1.0);
 
+    //TEXTURING PROIETTIVO  
+    vec2 texCoords = ((projTexCoords/projTexCoords.w).xy *0.5+0.5);
+    vec4 fanale_color = texture(fanale_texture, texCoords.xy);
+
     vec4 t_color = texture(u_texture, v_texCoord.xy);  // Recupero il colore dalla texture
     finalColor *= t_color.rgb;  // Applico il colore della texture
 
-    color = vec4((finalColor * lamp_brightness) + sun_contribution.xyz, 1.0);  // Applico la luminosità e imposto il colore finale
+    color = vec4((finalColor * lamp_brightness) + sun_contribution.xyz + (fanale_color.xyz * fanale_color.w), 1.0);  // Applico la luminosità e imposto il colore finale
+    //color = fanale_color * 200;
 }

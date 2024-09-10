@@ -30,6 +30,7 @@
 
 #define MAX_HEIGHT 300.f
 #define NUM_LIGHTS 8
+#define TREE_COUNT 10
 
 using namespace std;
 
@@ -321,17 +322,15 @@ int main(void)
     glm::vec3 translation(0.0, 0, 0);
     float rot = 0.0f;
     float speed = 0.0f;
+    glActiveTexture(GL_TEXTURE2);
 
     //--------------------------------------
     //CARICAMENTO GLTF (MACCHINA)
     //--------------------------------------
-
     gltf_loader gltfL_car; 
     
     box3 bbox_car;
     vector <renderable> car;
-
-    glActiveTexture(GL_TEXTURE2);
 
     gltfL_car.load_to_renderable("res/glbModels/simple_sport_car.glb", car, bbox_car);
 
@@ -343,6 +342,15 @@ int main(void)
     box3 bbox_lamp;
     vector <renderable> lamp;
     gltfL_lamp.load_to_renderable("res/glbModels/eng_street_lamp.glb", lamp, bbox_lamp);
+
+    //------------------------------------------
+    //CARICAMENTO GLTF (ALBERO)
+    //------------------------------------------
+    gltf_loader gltfL_tree;
+
+    box3 bbox_tree;
+    vector <renderable> tree;
+    gltfL_tree.load_to_renderable("res/glbModels/pine_tree.glb", tree, bbox_tree);
 
     //------------------------------------------
 
@@ -371,6 +379,19 @@ int main(void)
 
     bool camera_lock = false;
     glm::vec3 old_pos(0.f, 0.f, 0.f);
+
+    glm::vec3 tree_pos[TREE_COUNT] = {
+        glm::vec3(-1.f, 8.5f, 1.f),
+        glm::vec3(3.f, 0.f, -17.f),
+        glm::vec3(-10.f, 4.f, -10.f),
+        glm::vec3(10.f, 3.75f, 3.f),
+        glm::vec3(-18.f, 0.f, 5.f),
+        glm::vec3(19.f, 0.f, 5.f),
+        glm::vec3(19.f, 0.f, -5.f),
+        glm::vec3(0.f, 5.f, -7.f),
+        glm::vec3(7.f, 3.75f, 8.f),
+        glm::vec3(-6.f, 4.f, 10.f)
+    };
 
     while (!glfwWindowShouldClose(window))
     {
@@ -454,6 +475,27 @@ int main(void)
                 shader.setUniformMat4f("uModel", model_lamp);
 
                 glDrawElements(lamp[i]().mode, lamp[i]().count, lamp[i]().itype, 0);
+            }
+        }
+
+        glm::mat4 model_tree;
+        for (int j = 0; j < TREE_COUNT; j++) {
+            for (unsigned int i = 0; i < tree.size(); ++i) {
+                tree[i].bind();
+
+                glActiveTexture(GL_TEXTURE4);
+                glBindTexture(GL_TEXTURE_2D, tree[i].mater.base_color_texture);
+                shader.setUniform1i("u_texture", 4);
+
+                model_tree = glm::scale(glm::mat4(1.0f), glm::vec3(20, 20, 20));
+                model_tree = glm::translate(model_tree, tree_pos[j]);
+                model_tree = model_tree * lamp[i].transform;
+
+                mvp = proj * view * model_tree;
+                shader.setUniformMat4f("u_MVP", mvp);
+                shader.setUniformMat4f("uModel", model_tree);
+
+                glDrawElements(tree[i]().mode, tree[i]().count, tree[i]().itype, 0);
             }
         }
 

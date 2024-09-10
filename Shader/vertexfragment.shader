@@ -34,11 +34,14 @@ uniform vec3 uLightPos[8];  // Array per le posizioni delle luci
 uniform vec3 uLightColor[8];  // Array per i colori delle luci
 uniform int numLights;  // Numero di luci attive
 
+uniform vec3 uLDir; //Direzione della luce del sole
+uniform vec3 uSunColor; //Colore della luce del sole
+
 uniform vec3 uDiffuseColor;
 uniform vec3 uAmbientColor;
 uniform vec3 uSpecularColor;
 uniform float uShininess;
-uniform float light_brightness;
+uniform float lamp_brightness;
 
 vec3 phong(vec3 L, vec3 V, vec3 N, vec3 lightColor) {
     float LN = max(0.0, dot(L, N));
@@ -57,7 +60,7 @@ void main() {
     for (int i = 0; i < numLights; i++) {
         vec3 L = normalize(uLightPos[i] - vPosVS);  // Direzione della luce
         float distance = length(uLightPos[i] - vPosVS);  // Distanza dal punto luce
-        float attenuation = light_brightness / (1.0 + 0.0009 * distance + 0.00032 * distance * distance);  // Attenuazione
+        float attenuation = lamp_brightness / (1.0 + 0.0009 * distance + 0.00032 * distance * distance);  // Attenuazione
         //attenuation = 1.0;
 
         // Calcolo il contributo Phong per ogni luce e lo attenuo
@@ -65,8 +68,10 @@ void main() {
         finalColor += lightContribution;  // Sommo il contributo di ogni luce
     }
 
+    vec4 sun_contribution = vec4(phong(uLDir, V, N, uSunColor),1.0);
+
     vec4 t_color = texture(u_texture, v_texCoord.xy);  // Recupero il colore dalla texture
     finalColor *= t_color.rgb;  // Applico il colore della texture
 
-    color = vec4(finalColor * light_brightness, 1.0);  // Applico la luminosità e imposto il colore finale
+    color = vec4((finalColor * lamp_brightness) + sun_contribution.xyz, 1.0);  // Applico la luminosità e imposto il colore finale
 }

@@ -37,6 +37,8 @@ float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indi
     //La griglia è NxN punti
     //Quindi (N-1)x(N-1) quadrati
 
+    
+
     string line;
     string cell;
 
@@ -198,6 +200,8 @@ int main(void)
 
     float lato = 10.f;
 
+	float move_speed = 2.f;
+
     float positions[N_PUNTI * N_PUNTI * 5];
     genGrid(positions, lato, indici, "res/maps/mappa_altezze_modificato.csv");
 
@@ -252,18 +256,18 @@ int main(void)
     float d_color[3] = { 0.1f,0.1f,0.1f };      //Diffuse
     float s_color[3] = { 0.1f,0.1f,0.1f };      //Specular
     //float e_color[3] = { 0.5f,0.1f,0.2f };      //Emissive
-    //float l_color[3] = { 0.9f,0.9f,0.9f };      //Light Color
+    float sun_color[3] = { 0.2f,0.2f,0.2f };      //Sun Color
     float shininess = .0f;
-    float sun_brightness = 5.f;
-    //glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
+    float lamp_brightness = 5.f;
+    glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
     shader.setUniform3f("uAmbientColor", a_color);
     shader.setUniform3f("uDiffuseColor", d_color);
     shader.setUniform3f("uSpecularColor", s_color);
     //shader.setUniform3f("uEmissiveColor", e_color);
-    //shader.setUniform3f("uLightColor", l_color);
+    shader.setUniform3f("uSunColor", sun_color);
     shader.setUniform1f("uShininess", shininess);
-    //shader.setUniform3f("uLDir", Ldir.x, Ldir.y, Ldir.z);
-    shader.setUniform1f("light_brightness", sun_brightness);
+    shader.setUniform3f("uLDir", Ldir.x, Ldir.y, Ldir.z);
+    shader.setUniform1f("lamp_brightness", lamp_brightness);
 
     int num_lights = 8;
     glm::vec3 light_pos[NUM_LIGHTS]{
@@ -301,9 +305,6 @@ int main(void)
     //Lo uniform conterrà la texture che abbiamo inserito nello slot specificato (con il texture.bind())
     shader.setUniform1i("u_texture", 0);
 
-    //float r = -1.0f;
-    //float increment = 0.5f;
-
     //Si toglie tutto perché è meglio collegarli frame per frame
     //Immagino che torna comodo quando c'è da fare cambiamenti tra frame
     shader.unBind();
@@ -332,8 +333,6 @@ int main(void)
 
     glActiveTexture(GL_TEXTURE2);
 
-    // load a gltf scene into a vector of objects of type renderable "obj"
-    // alo return a box containing the whole scene
     gltfL_car.load_to_renderable("res/glbModels/simple_sport_car.glb", car, bbox_car);
 
     //------------------------------------------
@@ -369,6 +368,7 @@ int main(void)
     glm::vec3 objTranslation(1875.0f, 50.f, 0.0f);
     //objTranslation = glm::vec3(0.0f, 300.0f, 0.0f);
     float objRot = 1.0f;
+
     bool camera_lock = false;
     glm::vec3 old_pos(0.f, 0.f, 0.f);
 
@@ -392,11 +392,9 @@ int main(void)
         view = glm::translate(glm::rotate(glm::translate(view, view_trasl), rot, glm::vec3(.0f, 1.f, .0f)), -view_trasl);
 
         rot = 0.0f;
-        glm::mat4 mvp = proj * view * model;    //L'ordine dei prodotti è importante
+        glm::mat4 mvp = proj * view * model;
         shader.setUniformMat4f("u_MVP", mvp);
         shader.setUniformMat4f("uModel", model);
-
-        //shader.setUniform4f("u_color", 0.0f, 0.0f, 1.0f, 1.0f);
 
         //Rendering del terreno
         shader.setUniform1i("u_texture", 0);
@@ -439,9 +437,7 @@ int main(void)
 
         glm::mat4 model_lamp;
         for (int j = 0; j < 8; j++) {
-
-
-            for (unsigned int i = 0; i < lamp.size(); ++i) {
+            for (unsigned int i = 1; i < lamp.size(); ++i) {
                 lamp[i].bind();
 
                 glActiveTexture(GL_TEXTURE3);
@@ -465,24 +461,29 @@ int main(void)
             //Gestione della posizione della scena con i tasti della tastiera
             if (!camera_lock) {
                 if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-                    translation.z -= 2.0f;
+                    //translation.z -= 2.0f;
+
+					translation.x = view[0][2] * move_speed;
+					translation.z = view[2][2] * move_speed;
                 }
                 if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-                    translation.z += 2.0f;
+					translation.x = -view[0][2] * move_speed;
+					translation.z = -view[2][2] * move_speed;
                 }
                 if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-                    translation.x -= 2.0f;
+                    translation.x = view[0][0] * move_speed;
+					translation.z = view[2][0] * move_speed;
                 }
                 if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-                    translation.x += 2.0f;
+					translation.x = -view[0][0] * move_speed;
+					translation.z = -view[2][0] * move_speed;
                 }
                 if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-                    translation.y += 1.0f;
+                    translation.y += 1.0f * move_speed;
                 }
                 if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-                    translation.y -= 1.0f;
+                    translation.y -= 1.0f * move_speed;
                 }
-
 
                 //Gestione della rotazione della scena con i tasti della tastiera
                 if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
@@ -517,8 +518,6 @@ int main(void)
             }
             old_pos = car_pos;
 
-
-            
             //Testi visualizzati da ImGui per l'utente
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::Text("----------------------------------------------------");

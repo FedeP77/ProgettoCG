@@ -34,6 +34,84 @@
 
 using namespace std;
 
+//Disegna la scena senza texture e senza modificare la posizione di alcun oggetto nello spazio
+//ai fini del creare la Shadow Map
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>DA FINIRE!!!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+void drawShadowMap(glm::mat4 view, glm::mat4 proj, Shader shader, Renderer renderer, VertexArray va_terrain, IndexBuffer ib_terrain, VertexArray va_road, IndexBuffer ib_road, vector<renderable> car, vector<renderable> lamp, vector<renderable> tree, float objRot, float scale_factor, glm::vec3 objTranslation, glm::vec3 tree_pos[]) {
+    //La model matrix sposta gli oggetti nella scena 
+    glm::mat4 model = glm::mat4(1.0f);
+
+    glm::mat4 mvp = proj * view * model;
+    shader.setUniformMat4f("uLightMatrix", mvp);
+
+    //Rendering del terreno
+    renderer.draw(va_terrain, ib_terrain, shader);
+
+    //Rendering della strada
+    renderer.draw(va_road, ib_road, shader);
+
+    //Rendering di una macchina
+    glm::mat4 model_car;
+    objRot -= 0.5f;
+    for (unsigned int i = 0; i < car.size(); ++i) {
+        //Utilizza i buffer dell'oggetto
+        car[i].bind();
+
+        //Scala l'oggetto
+        model_car = glm::scale(glm::mat4(1.0f), glm::vec3(scale_factor, scale_factor, scale_factor));
+        //Ruota l'oggetto progresstivamente
+        model_car = glm::rotate(model_car, glm::radians(objRot), glm::vec3(0.0f, 1.0f, 0.0f));
+        //Trasla l'oggetto nella posizione desiderata
+        model_car = glm::translate(model_car, objTranslation);
+        //Applica le trasformazioni specifiche dell'oggetto
+        model_car = model_car * car[i].transform;
+
+        //Crea la matrice ModelViewProjection della macchina
+        mvp = proj * view * model_car;
+        shader.setUniformMat4f("uLightMatrix", mvp);
+        //shader.setUniformMat4f("uProj", proj);
+
+        glDrawElements(car[i]().mode, car[i]().count, car[i]().itype, 0);
+    }
+
+    glm::mat4 model_lamp;
+    for (int j = 0; j < 8; j++) {
+        for (unsigned int i = 1; i < lamp.size(); ++i) {
+            lamp[i].bind();
+
+            model_lamp = glm::scale(glm::mat4(1.0f), glm::vec3(10, 10, 10));
+            model_lamp = glm::rotate(model_lamp, glm::radians((float)((360 / 8) * j)), glm::vec3(0.f, 1.f, 0.f));
+            model_lamp = glm::translate(model_lamp, glm::vec3(44.f, 0.f, 0.f));
+            model_lamp = model_lamp * lamp[i].transform;
+
+            mvp = proj * view * model_lamp;
+            shader.setUniformMat4f("uLightMatrix", mvp);
+
+            glDrawElements(lamp[i]().mode, lamp[i]().count, lamp[i]().itype, 0);
+        }
+    }
+
+    glm::mat4 model_tree;
+    for (int j = 0; j < TREE_COUNT; j++) {
+        for (unsigned int i = 0; i < tree.size(); ++i) {
+            tree[i].bind();
+
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_2D, tree[i].mater.base_color_texture);
+            shader.setUniform1i("u_texture", 4);
+
+            model_tree = glm::scale(glm::mat4(1.0f), glm::vec3(20, 20, 20));
+            model_tree = glm::translate(model_tree, tree_pos[j]);
+            model_tree = model_tree * lamp[i].transform;
+
+            mvp = proj * view * model_tree;
+            shader.setUniformMat4f("uLightMatrix", mvp);
+
+            glDrawElements(tree[i]().mode, tree[i]().count, tree[i]().itype, 0);
+        }
+    }
+}
+
 float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indici[], string filename) {
     //La griglia è NxN punti
     //Quindi (N-1)x(N-1) quadrati
@@ -334,6 +412,33 @@ int main(void)
     glm::vec3 translation(0.0, 0, 0);
     float rot = 0.0f;
     float speed = 0.0f;
+
+    //Definizione del framebuffer e della texture che contiene la depth map
+    glActiveTexture(GL_TEXTURE6);
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
+
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    unsigned int depthMap;
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    Shader depthmap_shader("Shader/depthmap.shader");
+
+
     glActiveTexture(GL_TEXTURE2);
 
     //--------------------------------------
@@ -378,14 +483,15 @@ int main(void)
     va_road.addBuffer(vb_road, layout);
 
     IndexBuffer ib_road(ind_road, P_CERCH * 2 * 3);
+
     Texture normalMap("res/maps/normal_map.jpg");
+    normalMap.bind(5);
+    shader.setUniform1i("normalMap_texture", 5);
+    shader.setUniform1i("isStreet", 0);
 
     Texture tex_road("res/textures/street_tile.png");
     tex_road.bind(1);
 
-    normalMap.bind(5);
-    shader.setUniform1i("normalMap_texture", 5);
-    shader.setUniform1i("isStreet", 0);
 
     //Fattore di scalatura per la macchina 
     float scale_factor = 0.25f;
@@ -411,8 +517,7 @@ int main(void)
         glm::vec3(-6.f, 4.f, 10.f)
     };
 
-    
-
+    //LOOP DI RENDERING
     while (!glfwWindowShouldClose(window))
     {
         //Pulisci il buffer dei colori (Preparazione dell'ambiente di rendering)
@@ -424,6 +529,12 @@ int main(void)
 
         ImGui_ImplGlfwGL3_NewFrame();
 
+        //Se la riga seguente viene inserita non funziona più niente
+        //depthmap_shader.bind();
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        //----------------DA FINIRE
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
         //La model matrix sposta gli oggetti nella scena 
         glm::mat4 model = glm::mat4(1.0f);
         rot = rot + speed;

@@ -157,6 +157,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="res\mappa_altezze_troncato.csv" />
+    <None Include="Shader\depthmap.shader" />
     <None Include="Shader\vertexfragment.shader" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

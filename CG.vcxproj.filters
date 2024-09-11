@@ -78,5 +78,6 @@
   <ItemGroup>
     <None Include="Shader\vertexfragment.shader" />
     <None Include="res\mappa_altezze_troncato.csv" />
+    <None Include="Shader\depthmap.shader" />
   </ItemGroup>
 </Project>

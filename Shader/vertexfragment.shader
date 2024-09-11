@@ -37,6 +37,9 @@ in vec3 vNormalVS;
 in vec4 projTexCoords;
 
 uniform sampler2D u_texture;
+uniform sampler2D normalMap_texture;
+
+uniform int isStreet;
 
 uniform vec3 uLightPos[8];  // Array per le posizioni delle luci
 uniform vec3 uLightColor[8];  // Array per i colori delle luci
@@ -51,10 +54,7 @@ uniform vec3 uSpecularColor;
 uniform float uShininess;
 uniform float lamp_brightness;
 
-uniform mat4 uHeadlightDir;
-uniform vec3 uHeadlightOffset;
-
-uniform sampler2D fanale_texture;
+uniform vec3 fanale_color;
 
 
 vec3 phong(vec3 L, vec3 V, vec3 N, vec3 lightColor) {
@@ -65,10 +65,26 @@ vec3 phong(vec3 L, vec3 V, vec3 N, vec3 lightColor) {
     return (uAmbientColor + LN * uDiffuseColor + spec * uSpecularColor) * lightColor;
 }
 
+float headlight_fading(vec3 coord)
+{
+    float begin_fading = 0.1;
+    float end_fading = 0.5;
+    float aux = abs(coord.x - 0.5);
+    if(aux < begin_fading)
+        return 1.0;
+    else
+        return (end_fading - aux) / (end_fading - begin_fading);
+}
+
 void main() {
     vec3 finalColor = vec3(0.0);
     vec3 V = normalize(-vPosVS);  // Direzione verso la camera
     vec3 N = normalize(vNormalVS);  // Normale del frammento
+
+    if(isStreet == 1){
+        N = texture(normalMap_texture,(v_texCoord).xy).xyz ;
+        N = normalize(N*2.0-1.0);
+    }
 
     // Itero su ogni luce e sommo il contributo
     for (int i = 0; i < numLights; i++) {
@@ -85,12 +101,14 @@ void main() {
     vec4 sun_contribution = vec4(phong(uLDir, V, N, uSunColor),1.0);
 
     //TEXTURING PROIETTIVO  
-    vec2 texCoords = ((projTexCoords/projTexCoords.w).xy *0.5+0.5);
-    vec4 fanale_color = texture(fanale_texture, texCoords.xy);
+    vec3 texCoords = ((projTexCoords/projTexCoords.w).xyz *0.5+0.5);
+    vec3 fanale_contribution = vec3(0.0, 0.0, 0.0);
+
+    if (!(texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0 || texCoords.z < 0.0 || texCoords.z > 1.0)) {
+        fanale_contribution = fanale_color * headlight_fading(texCoords);   
+    }
 
     vec4 t_color = texture(u_texture, v_texCoord.xy);  // Recupero il colore dalla texture
-    finalColor *= t_color.rgb;  // Applico il colore della texture
 
-    color = vec4((finalColor * lamp_brightness) + sun_contribution.xyz + (fanale_color.xyz * fanale_color.w), 1.0);  // Applico la luminosità e imposto il colore finale
-    //color = fanale_color * 200;
+    color = vec4(((finalColor * lamp_brightness) + sun_contribution.xyz + (fanale_contribution)) * t_color.rgb, 1.0);
 }

@@ -194,6 +194,7 @@ int main(void)
     glEnable(GL_MULTISAMPLE);
     glActiveTexture(GL_TEXTURE0);
 
+
     //Per evitare di duplicare i punti nell'array positions, si crea un indexBuffer, in cui si indicano le posizioni
     //dei punti da usare per creare ciascun elemento
     //PER L'INDEX BUFFER
@@ -263,17 +264,14 @@ int main(void)
     glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
 
     //TEXTURING PROIETTIVO
-	glm::mat4 fanale_sx = glm::lookAt(glm::vec3(0.0f, 500.0f, -1500.0f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-    glm::mat4 proj_fanale = glm::perspective(glm::radians(45.0f), 1.0f, 100.0f, 4000.0f);
-    //proj_fanale = glm::frustum(-10.f, 10.f, -5.f, 5.f, 100.f, 4000.f);
-	glm::vec3 offset_fanale_dx(1.f, .0f, .0f);
+	glm::mat4 fanali = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f));
+    glm::mat4 proj_fanale = glm::perspective(glm::radians(60.0f), 1.0f, 50.0f, 800.0f);
 
-    Texture fanali("res/textures/immagine.png");
-    fanali.bind(5);
+    float fanale_color[3] = { 0.3f, 0.3f, 0.0f };
 
-    shader.setUniformMat4f("view_fanale", fanale_sx);
+    shader.setUniformMat4f("view_fanale", fanali);
     shader.setUniformMat4f("proj_fanale", proj_fanale);
-    shader.setUniform1i("fanale_texture", 5);
+    shader.setUniform3f("fanale_color", fanale_color);
 
     shader.setUniform3f("uAmbientColor", a_color);
     shader.setUniform3f("uDiffuseColor", d_color);
@@ -384,6 +382,11 @@ int main(void)
     Texture tex_road("res/textures/street_tile.png");
     tex_road.bind(1);
 
+    Texture normalMap("res/maps/normal_map.jpg");
+    normalMap.bind(5);
+    shader.setUniform1i("normalMap_texture", 5);
+    shader.setUniform1i("isStreet", 0);
+
     //Fattore di scalatura per la macchina 
     float scale_factor = 0.25f;
 
@@ -392,6 +395,7 @@ int main(void)
     float objRot = 1.0f;
 
     bool camera_lock = false;
+    glm::vec3 car_pos(0.f, 0.f, 0.f);
     glm::vec3 old_pos(0.f, 0.f, 0.f);
 
     glm::vec3 tree_pos[TREE_COUNT] = {
@@ -407,6 +411,7 @@ int main(void)
         glm::vec3(-6.f, 4.f, 10.f)
     };
 
+    
 
     while (!glfwWindowShouldClose(window))
     {
@@ -437,8 +442,10 @@ int main(void)
         renderer.draw(va_terrain, ib_terrain, shader);
 
         //Rendering della strada
+        shader.setUniform1i("isStreet", 1);
         shader.setUniform1i("u_texture", 1);
         renderer.draw(va_road, ib_road, shader);
+        shader.setUniform1i("isStreet", 0);
 
         //Rendering di una macchina
         objRot -= 0.5f;
@@ -466,10 +473,13 @@ int main(void)
             shader.setUniformMat4f("u_MVP", mvp);
             shader.setUniformMat4f("uModel", model_car);
             //shader.setUniformMat4f("uProj", proj);
-            
 
             glDrawElements(car[i]().mode, car[i]().count, car[i]().itype, 0);
         }
+            
+        car_pos = glm::vec3(model_car[3][0], model_car[3][1], model_car[3][2]);
+        fanali = glm::lookAt((car_pos + ((car_pos - old_pos) * 1.f)) + glm::vec3(0.f, 0.f, 0.f), car_pos + ((car_pos - old_pos) * 5.f) - glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+        shader.setUniformMat4f("view_fanale", fanali);
 
         glm::mat4 model_lamp;
         for (int j = 0; j < 8; j++) {
@@ -567,7 +577,6 @@ int main(void)
                 camera_lock = true;
             }
 
-            glm::vec3 car_pos(model_car[3][0], model_car[3][1], model_car[3][2]);
             if (camera_lock) {
                 
                 view = glm::lookAt((car_pos - ((car_pos - old_pos) * 40.f)) + glm::vec3(0.f, 75.f, 0.f), car_pos, glm::vec3(0.f, 1.f, 0.f));

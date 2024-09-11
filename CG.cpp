@@ -378,11 +378,11 @@ int main(void)
     va_road.addBuffer(vb_road, layout);
 
     IndexBuffer ib_road(ind_road, P_CERCH * 2 * 3);
+    Texture normalMap("res/maps/normal_map.jpg");
 
     Texture tex_road("res/textures/street_tile.png");
     tex_road.bind(1);
 
-    Texture normalMap("res/maps/normal_map.jpg");
     normalMap.bind(5);
     shader.setUniform1i("normalMap_texture", 5);
     shader.setUniform1i("isStreet", 0);

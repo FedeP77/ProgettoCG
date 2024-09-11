@@ -82,7 +82,7 @@ void main() {
     vec3 N = normalize(vNormalVS);  // Normale del frammento
 
     if(isStreet == 1){
-        N = texture(normalMap_texture,(v_texCoord).xy).xyz ;
+        N = texture(normalMap_texture,vec2(v_texCoord.x, v_texCoord.y)).xyz ;
         N = normalize(N*2.0-1.0);
     }
 

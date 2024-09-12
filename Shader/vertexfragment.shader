@@ -38,6 +38,7 @@ in vec4 projTexCoords;
 
 uniform sampler2D u_texture;
 uniform sampler2D normalMap_texture;
+uniform sampler2D shadowMap_texture;
 
 uniform int isStreet;
 
@@ -55,6 +56,10 @@ uniform float uShininess;
 uniform float lamp_brightness;
 
 uniform vec3 fanale_color;
+uniform mat4 view_fanale;
+
+uniform float uBias;
+
 
 
 vec3 phong(vec3 L, vec3 V, vec3 N, vec3 lightColor) {
@@ -79,7 +84,7 @@ float headlight_fading(vec3 coord)
 void main() {
     vec3 finalColor = vec3(0.0);
     vec3 V = normalize(-vPosVS);  // Direzione verso la camera
-    vec3 N = normalize(vNormalVS);  // Normale del frammento
+    vec3 N = normalize(vNormalVS);  // Normale
 
     if(isStreet == 1){
         N = texture(normalMap_texture,vec2(v_texCoord.x, v_texCoord.y)).xyz ;
@@ -105,10 +110,17 @@ void main() {
     vec3 fanale_contribution = vec3(0.0, 0.0, 0.0);
 
     if (!(texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0 || texCoords.z < 0.0 || texCoords.z > 1.0)) {
-        fanale_contribution = fanale_color * headlight_fading(texCoords);   
+        //Calcolo delle ombre dei fanali con Shadow Map
+        vec3 L = normalize(vec3(view_fanale[3]) - vPosVS);
+        float bias = clamp(uBias*tan(acos(dot(N,L))),uBias,0.05);
+		float depth = texture(shadowMap_texture,texCoords.xy).x;
+		if(!(depth < texCoords.z)){
+            fanale_contribution = fanale_color * headlight_fading(texCoords);   
+        }
+
     }
 
     vec4 t_color = texture(u_texture, v_texCoord.xy);  // Recupero il colore dalla texture
 
-    color = vec4(((finalColor * lamp_brightness) + sun_contribution.xyz + (fanale_contribution)) * t_color.rgb, 1.0);
+    color = vec4(((finalColor * lamp_brightness) + sun_contribution.xyz + (fanale_contribution*100)) * t_color.rgb, 1.0);
 }

@@ -45,6 +45,10 @@ public:
 		glUseProgram(0);
 	}
 
+    void printID() {
+        cout << "ID shader: " << m_rendererID << endl;
+    }
+
 	//SetUniforms
 	void setUniform4f(const string& name, float v0, float v1, float v2, float v3) {
 		glUniform4f(getUniformLocation(name), v0, v1, v2, v3);

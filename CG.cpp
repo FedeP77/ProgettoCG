@@ -37,11 +37,12 @@ using namespace std;
 //Disegna la scena senza texture e senza modificare la posizione di alcun oggetto nello spazio
 //ai fini del creare la Shadow Map
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>DA FINIRE!!!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-void drawShadowMap(glm::mat4 view, glm::mat4 proj, Shader shader, Renderer renderer, VertexArray va_terrain, IndexBuffer ib_terrain, VertexArray va_road, IndexBuffer ib_road, vector<renderable> car, vector<renderable> lamp, vector<renderable> tree, float objRot, float scale_factor, glm::vec3 objTranslation, glm::vec3 tree_pos[]) {
+void drawShadowMap(glm::mat4 view, glm::mat4 proj, Shader& shader, Renderer& renderer, VertexArray& va_terrain, IndexBuffer& ib_terrain, VertexArray& va_road, IndexBuffer& ib_road, vector<renderable> car, vector<renderable> lamp, vector<renderable> tree, float objRot, float scale_factor, glm::vec3 objTranslation, glm::vec3 tree_pos[]) {
     //La model matrix sposta gli oggetti nella scena 
     glm::mat4 model = glm::mat4(1.0f);
 
     glm::mat4 mvp = proj * view * model;
+    shader.bind();
     shader.setUniformMat4f("uLightMatrix", mvp);
 
     //Rendering del terreno
@@ -96,10 +97,6 @@ void drawShadowMap(glm::mat4 view, glm::mat4 proj, Shader shader, Renderer rende
         for (unsigned int i = 0; i < tree.size(); ++i) {
             tree[i].bind();
 
-            glActiveTexture(GL_TEXTURE4);
-            glBindTexture(GL_TEXTURE_2D, tree[i].mater.base_color_texture);
-            shader.setUniform1i("u_texture", 4);
-
             model_tree = glm::scale(glm::mat4(1.0f), glm::vec3(20, 20, 20));
             model_tree = glm::translate(model_tree, tree_pos[j]);
             model_tree = model_tree * lamp[i].transform;
@@ -110,6 +107,7 @@ void drawShadowMap(glm::mat4 view, glm::mat4 proj, Shader shader, Renderer rende
             glDrawElements(tree[i]().mode, tree[i]().count, tree[i]().itype, 0);
         }
     }
+    return;
 }
 
 float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indici[], string filename) {
@@ -339,13 +337,14 @@ int main(void)
     float sun_color[3] = { 0.2f,0.2f,0.2f };      //Sun Color
     float shininess = .0f;
     float lamp_brightness = 5.f;
+    lamp_brightness = 0.0f;
     glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
 
     //TEXTURING PROIETTIVO
 	glm::mat4 fanali = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f));
     glm::mat4 proj_fanale = glm::perspective(glm::radians(60.0f), 1.0f, 50.0f, 800.0f);
 
-    float fanale_color[3] = { 0.3f, 0.3f, 0.0f };
+    float fanale_color[3] = { 0.9f, 0.9f, 0.0f };
 
     shader.setUniformMat4f("view_fanale", fanali);
     shader.setUniformMat4f("proj_fanale", proj_fanale);
@@ -359,6 +358,7 @@ int main(void)
     shader.setUniform1f("uShininess", shininess);
     shader.setUniform3f("uLDir", Ldir.x, Ldir.y, Ldir.z);
     shader.setUniform1f("lamp_brightness", lamp_brightness);
+    shader.setUniform1f("uBias", 0.0f);
 
     int num_lights = 8;
     glm::vec3 light_pos[NUM_LIGHTS]{
@@ -517,6 +517,7 @@ int main(void)
         glm::vec3(-6.f, 4.f, 10.f)
     };
 
+
     //LOOP DI RENDERING
     while (!glfwWindowShouldClose(window))
     {
@@ -529,11 +530,18 @@ int main(void)
 
         ImGui_ImplGlfwGL3_NewFrame();
 
-        //Se la riga seguente viene inserita non funziona più niente
-        //depthmap_shader.bind();
+        
+        depthmap_shader.bind();
+        depthmap_shader.setUniform1f("uPlaneApprox", 0.5f);
+        
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        //----------------DA FINIRE
+        renderer.clear();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        drawShadowMap(fanali, proj_fanale, depthmap_shader, renderer, va_terrain, ib_terrain, va_road, ib_road, car, lamp, tree, objRot, scale_factor, objTranslation, tree_pos);
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
         
         //La model matrix sposta gli oggetti nella scena 
         glm::mat4 model = glm::mat4(1.0f);
@@ -545,6 +553,10 @@ int main(void)
 
         rot = 0.0f;
         glm::mat4 mvp = proj * view * model;
+
+        shader.bind();
+        shader.setUniform1i("shadowMap_texture", 6);
+
         shader.setUniformMat4f("u_MVP", mvp);
         shader.setUniformMat4f("uModel", model);
 

@@ -141,7 +141,11 @@ float* genGrid(float grid[N_PUNTI*N_PUNTI*5],  float dim_lato, unsigned int indi
             grid[(i * N_PUNTI + j)*5 + 2] = j * dim_lato - dim_lato * (N_PUNTI - 1) / 2;
             grid[(i * N_PUNTI + j) * 5 + 3] = float(i) / PPT;
             grid[(i * N_PUNTI + j) * 5 + 4] = float(j) / PPT;
+            /*if (j == 50) {
+                grid[(i * N_PUNTI + j) * 5 + 1] = MAX_HEIGHT;
+            }*/
         }
+
     }
 
     for (int i = 0; i < N_PUNTI - 1; i++)

@@ -337,7 +337,7 @@ int main(void)
     float sun_color[3] = { 0.2f,0.2f,0.2f };      //Sun Color
     float shininess = .0f;
     float lamp_brightness = 5.f;
-    lamp_brightness = 0.0f;
+    //lamp_brightness = 0.0f;
     glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
 
     //TEXTURING PROIETTIVO
@@ -398,7 +398,7 @@ int main(void)
 
     //Si toglie tutto perché è meglio collegarli frame per frame
     //Immagino che torna comodo quando c'è da fare cambiamenti tra frame
-    shader.unBind();
+    
     va_terrain.unBind();
     vb_terrain.Unbind();
     ib_terrain.unBind();
@@ -516,6 +516,7 @@ int main(void)
         glm::vec3(7.f, 3.75f, 8.f),
         glm::vec3(-6.f, 4.f, 10.f)
     };
+    shader.unBind();
 
 
     //LOOP DI RENDERING

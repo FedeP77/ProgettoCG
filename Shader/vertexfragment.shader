@@ -132,8 +132,8 @@ void main() {
         float bias = clamp(uBias*tan(acos(dot(N,L))),uBias,0.05);
 		float depth = texture(shadowMap_texture,texCoords.xy).x;
 		if(!(depth < texCoords.z)){
-        }
             fanale_contribution = fanale_color * headlight_fading(texCoords);   
+        }
         
 
     }

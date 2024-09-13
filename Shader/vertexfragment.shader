@@ -23,7 +23,8 @@ void main() {
     vNormalVS = (uModel * vec4(aNormal, 0.0)).xyz;  // Normale nello spazio della vista
 
     //Texturing proiettivo
-    projTexCoords = (proj_fanale * view_fanale) * (uModel * vec4(position, 1.0));
+    projTexCoords = proj_fanale * view_fanale * uModel * vec4(position, 1.0);
+
 }
 	
 #shader fragment
@@ -55,6 +56,10 @@ uniform vec3 uSpecularColor;
 uniform float uShininess;
 uniform float lamp_brightness;
 
+uniform vec3 lampDir;
+uniform float cutoff;
+uniform float innerCutoff;
+
 uniform vec3 fanale_color;
 uniform mat4 view_fanale;
 
@@ -72,13 +77,23 @@ vec3 phong(vec3 L, vec3 V, vec3 N, vec3 lightColor) {
 
 float headlight_fading(vec3 coord)
 {
-    float begin_fading = 0.1;
-    float end_fading = 0.5;
+    float begin_fading_x = 0.1;
+    
+    float end_fading_x = 0.5;
+    
     float aux = abs(coord.x - 0.5);
-    if(aux < begin_fading)
-        return 1.0;
+    float fading = 1.0;
+
+    
+
+    if(aux < begin_fading_x)
+        fading *= 1.0;
     else
-        return (end_fading - aux) / (end_fading - begin_fading);
+        fading *= (end_fading_x - aux) / (end_fading_x - begin_fading_x);
+
+    
+
+    return fading;
 }
 
 void main() {
@@ -93,14 +108,16 @@ void main() {
 
     // Itero su ogni luce e sommo il contributo
     for (int i = 0; i < numLights; i++) {
-        vec3 L = normalize(uLightPos[i] - vPosVS);  // Direzione della luce
-        float distance = length(uLightPos[i] - vPosVS);  // Distanza dal punto luce
-        float attenuation = lamp_brightness / (1.0 + 0.0009 * distance + 0.00032 * distance * distance);  // Attenuazione
-        //attenuation = 1.0;
+        vec3 L = normalize(uLightPos[i] - vPosVS);
+        float theta = dot(L, -lampDir);
 
-        // Calcolo il contributo Phong per ogni luce e lo attenuo
-        vec3 lightContribution = phong(L, V, N, uLightColor[i]) * attenuation;
-        finalColor += lightContribution;  // Sommo il contributo di ogni luce
+        float epsilon = cos(radians(innerCutoff)) - cos(radians(cutoff));
+        float intensity = clamp((theta - (cos(radians(cutoff)))) / epsilon, 0.0, 1.0);
+
+
+        if(theta > cos(radians(cutoff))){
+            finalColor += phong(L, V, N, uLightColor[i]) * intensity;
+        }
     }
 
     vec4 sun_contribution = vec4(phong(uLDir, V, N, uSunColor),1.0);
@@ -114,14 +131,14 @@ void main() {
         vec3 L = normalize(vec3(view_fanale[3]) - vPosVS);
         float bias = clamp(uBias*tan(acos(dot(N,L))),uBias,0.05);
 		float depth = texture(shadowMap_texture,texCoords.xy).x;
-        
 		if(!(depth < texCoords.z)){
-            fanale_contribution = fanale_color * headlight_fading(texCoords);   
         }
+            fanale_contribution = fanale_color * headlight_fading(texCoords);   
+        
 
     }
 
     vec4 t_color = texture(u_texture, v_texCoord.xy);  // Recupero il colore dalla texture
 
-    color = vec4(((finalColor * lamp_brightness) + sun_contribution.xyz + (fanale_contribution*100)) * t_color.rgb, 1.0);
+    color = vec4(((finalColor * lamp_brightness) + (sun_contribution.xyz*10) + (fanale_contribution*100)) * t_color.rgb, 1.0);
 }

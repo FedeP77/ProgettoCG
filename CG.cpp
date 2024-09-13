@@ -340,13 +340,13 @@ int main(void)
     //float e_color[3] = { 0.5f,0.1f,0.2f };      //Emissive
     float sun_color[3] = { 0.2f,0.2f,0.2f };      //Sun Color
     float shininess = .0f;
-    float lamp_brightness = 5.f;
+    float lamp_brightness = 7.f;
     //lamp_brightness = 0.0f;
     glm::vec3 Ldir(0.0f, 1.0f, 0.0f);
 
     //TEXTURING PROIETTIVO
 	glm::mat4 fanali = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f));
-    glm::mat4 proj_fanale = glm::perspective(glm::radians(60.0f), 1.0f, 50.0f, 800.0f);
+    glm::mat4 proj_fanale = glm::perspective(glm::radians(60.0f), 1.0f, 50.0f, 1000.0f);
 
     float fanale_color[3] = { 0.9f, 0.9f, 0.0f };
 
@@ -375,6 +375,7 @@ int main(void)
         glm::vec3(-309.f, 75.f, 309.f),
         glm::vec3(309.f, 75.f, -309.f),
         glm::vec3(-309.f, 75.f, -309.f)
+
     };
 
     glm::vec3 light_color[NUM_LIGHTS]{
@@ -387,6 +388,14 @@ int main(void)
         glm::vec3(0.9f, 0.9f, 0.9f),
         glm::vec3(0.9f, 0.9f, 0.9f)
     };
+
+    float lampDir[3] = {0.0f, -1.0f, 0.0f};
+    float cutoff = 60.0f;
+    float innerCutoff = 1.0f;
+
+    shader.setUniform3f("lampDir", lampDir);
+    shader.setUniform1f("cutoff", cutoff);
+    shader.setUniform1f("innerCutoff", innerCutoff);
 
     shader.setUniform3fv("uLightPos", num_lights, light_pos);
     shader.setUniform3fv("uLightColor", num_lights, light_color);
@@ -606,7 +615,7 @@ int main(void)
         }
             
         car_pos = glm::vec3(model_car[3][0], model_car[3][1], model_car[3][2]);
-        fanali = glm::lookAt((car_pos + ((car_pos - old_pos) * 1.f)) + glm::vec3(0.f, 0.f, 0.f), car_pos + ((car_pos - old_pos) * 5.f) - glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+        fanali = glm::lookAt((car_pos + ((car_pos - old_pos) * 1.f)) + glm::vec3(0.f, 1.f, 0.f), car_pos + ((car_pos - old_pos) * 5.f) -glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
         shader.setUniformMat4f("view_fanale", fanali);
 
         glm::mat4 model_lamp;

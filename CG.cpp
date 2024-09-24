@@ -31,6 +31,7 @@
 #define MAX_HEIGHT 300.f
 #define NUM_LIGHTS 8
 #define TREE_COUNT 10
+#define CAMERA_COUNT 4
 
 using namespace std;
 
@@ -338,7 +339,7 @@ int main(void)
     float d_color[3] = { 0.1f,0.1f,0.1f };      //Diffuse
     float s_color[3] = { 0.1f,0.1f,0.1f };      //Specular
     //float e_color[3] = { 0.5f,0.1f,0.2f };      //Emissive
-    float sun_color[3] = { 0.2f,0.2f,0.2f };      //Sun Color
+    float sun_color[3] = { 0.5f,0.5f,0.5f };      //Sun Color
     float shininess = .0f;
     float lamp_brightness = 7.f;
     //lamp_brightness = 0.0f;
@@ -362,7 +363,7 @@ int main(void)
     shader.setUniform1f("uShininess", shininess);
     shader.setUniform3f("uLDir", Ldir.x, Ldir.y, Ldir.z);
     shader.setUniform1f("lamp_brightness", lamp_brightness);
-    shader.setUniform1f("uBias", 0.0f);
+    shader.setUniform1f("uBias", 0.01f);
 
     int num_lights = 8;
     glm::vec3 light_pos[NUM_LIGHTS]{
@@ -431,7 +432,7 @@ int main(void)
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
 
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    const unsigned int SHADOW_WIDTH = 2000, SHADOW_HEIGHT = 1600;
     unsigned int depthMap;
     glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
@@ -483,6 +484,15 @@ int main(void)
     gltfL_tree.load_to_renderable("res/glbModels/pine_tree.glb", tree, bbox_tree);
 
     //------------------------------------------
+    //CARICAMENTO GLTF (TELECAMERA)
+    //------------------------------------------
+    gltf_loader gltfL_camera;
+
+    box3 bbox_camera;
+    vector <renderable> camera;
+    gltfL_camera.load_to_renderable("res/glbModels/camera.glb", camera, bbox_camera);
+
+    //-------------------------------------------
 
 
     //Creazione della strada
@@ -529,33 +539,44 @@ int main(void)
         glm::vec3(7.f, 3.75f, 8.f),
         glm::vec3(-6.f, 4.f, 10.f)
     };
+
+    glm::vec3 camera_pos[CAMERA_COUNT] = {
+        glm::vec3(500.0f, 55.0f, -360.0f),
+        glm::vec3(0.f, 100.f, 0.f),
+        glm::vec3(140.f, 240.f, -23.f),
+        glm::vec3(200.f, 100.f, 437.f)
+    };
+
     shader.unBind();
+
+    /*float prova[] = {
+        -10.f, 0.f, -10.f, 0.f, 0.f,
+        -10.f, 0.f, 10.f, 0.f, 1.f,
+        10.f, 0.f, -10.f, 1.f, 0.f,
+        10.f, 0.f, 10.f, 1.f, 1.f
+    };
+    unsigned int ind_prova[] = {
+        0, 1, 2,
+        1, 3, 2
+    };
+    VertexArray va_prova;
+    VertexBuffer vb_prova(prova, 20 * sizeof(float));
+    va_prova.addBuffer(vb_prova, layout);
+
+    IndexBuffer ib_prova(ind_prova, 6);*/
+
 
 
     //LOOP DI RENDERING
     while (!glfwWindowShouldClose(window))
     {
         //Pulisci il buffer dei colori (Preparazione dell'ambiente di rendering)
-        renderer.clear();
         
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         ImGui_ImplGlfwGL3_NewFrame();
-
-        
-        depthmap_shader.bind();
-        depthmap_shader.setUniform1f("uPlaneApprox", 0.5f);
-        
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        renderer.clear();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        drawShadowMap(fanali, proj_fanale, depthmap_shader, renderer, va_terrain, ib_terrain, va_road, ib_road, car, lamp, tree, objRot, scale_factor, objTranslation, tree_pos);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
         
         //La model matrix sposta gli oggetti nella scena 
         glm::mat4 model = glm::mat4(1.0f);
@@ -573,6 +594,9 @@ int main(void)
 
         shader.setUniformMat4f("u_MVP", mvp);
         shader.setUniformMat4f("uModel", model);
+        
+        //shader.setUniform1i("u_texture", 6);
+        //renderer.draw(va_prova, ib_prova, shader);
 
         //Rendering del terreno
         shader.setUniform1i("u_texture", 0);
@@ -618,6 +642,18 @@ int main(void)
         fanali = glm::lookAt((car_pos + ((car_pos - old_pos) * 1.f)) + glm::vec3(0.f, 1.f, 0.f), car_pos + ((car_pos - old_pos) * 5.f) -glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
         shader.setUniformMat4f("view_fanale", fanali);
 
+        //Creazione della depthMap usata per calcolare le ombre generate dai fanali
+        depthmap_shader.bind();
+        depthmap_shader.setUniform1f("uPlaneApprox", 0.5f);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        drawShadowMap(fanali, proj_fanale, depthmap_shader, renderer, va_terrain, ib_terrain, va_road, ib_road, car, lamp, tree, objRot, scale_factor, objTranslation, tree_pos);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        shader.bind();
+
         glm::mat4 model_lamp;
         for (int j = 0; j < 8; j++) {
             for (unsigned int i = 1; i < lamp.size(); ++i) {
@@ -658,6 +694,33 @@ int main(void)
                 shader.setUniformMat4f("uModel", model_tree);
 
                 glDrawElements(tree[i]().mode, tree[i]().count, tree[i]().itype, 0);
+            }
+        }
+        glm::mat4 model_camera;
+        for (int j = 0; j < CAMERA_COUNT; j++) {
+            for (unsigned int i = 0; i < camera.size(); i++) {
+                camera[i].bind();
+
+                glActiveTexture(GL_TEXTURE7);
+                glBindTexture(GL_TEXTURE_2D, camera[i].mater.base_color_texture);
+                shader.setUniform1i("u_texture", 7);
+
+                model_camera = glm::scale(glm::mat4(1.0f), glm::vec3(0.5, 0.5, 0.5));
+                if (j == CAMERA_COUNT - 1) {
+                    model_camera = glm::rotate(model_camera, glm::radians(-90.f), glm::vec3(0.f, 1.f, 0.f));
+                }
+                else {
+                    model_camera = glm::rotate(model_camera, glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
+                }
+                model_camera = glm::translate(model_camera, camera_pos[j] * 2.f);
+                //model_camera = glm::lookAt(glm::vec3(437.f, -100.f, 200.f), glm::vec3(-437.0f, 55.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+                model_camera = model_camera * camera[i].transform;
+
+                mvp = proj * view * model_camera;
+                shader.setUniformMat4f("u_MVP", mvp);
+                shader.setUniformMat4f("uModel", model_camera);
+
+                glDrawElements(camera[i]().mode, camera[i]().count, camera[i]().itype, 0);
             }
         }
 
@@ -713,6 +776,14 @@ int main(void)
                 speed = 0;
                 camera_lock = true;
             }
+            if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+                camera_lock = false;
+                view = glm::lookAt(glm::vec3(-437.f, 100.f, 200.f), glm::vec3(-437.0f, 55.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+            }
+            if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
+                camera_lock = false;
+                view = glm::lookAt(glm::vec3(-23.f, 240.f, -140.f), glm::vec3(-23.f, 210.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+            }
 
             if (camera_lock) {
                 
@@ -732,6 +803,8 @@ int main(void)
             ImGui::Text("PREDEFINITO    --> 1");
             ImGui::Text("STRADA (FIXED) --> 2");
             ImGui::Text("MACCHINA       --> 3");
+            ImGui::Text("LAMPIONE       --> 4");
+            ImGui::Text("ALBERO         --> 5");
         }
             
         ImGui::Render();

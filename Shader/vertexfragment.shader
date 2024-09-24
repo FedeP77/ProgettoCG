@@ -123,7 +123,7 @@ void main() {
     vec4 sun_contribution = vec4(phong(uLDir, V, N, uSunColor),1.0);
 
     //TEXTURING PROIETTIVO  
-    vec3 texCoords = ((projTexCoords/projTexCoords.w).xyz *0.5+0.5);
+    vec4 texCoords = (projTexCoords/projTexCoords.w)*0.5+0.5;
     vec3 fanale_contribution = vec3(0.0, 0.0, 0.0);
 
     if (!(texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0 || texCoords.z < 0.0 || texCoords.z > 1.0)) {
@@ -131,14 +131,17 @@ void main() {
         vec3 L = normalize(vec3(view_fanale[3]) - vPosVS);
         float bias = clamp(uBias*tan(acos(dot(N,L))),uBias,0.05);
 		float depth = texture(shadowMap_texture,texCoords.xy).x;
-		if(!(depth < texCoords.z)){
-            fanale_contribution = fanale_color * headlight_fading(texCoords);   
-        }
         
+		if(!(depth + bias < texCoords.z)){
+            fanale_contribution = fanale_color * headlight_fading(texCoords.xyz);   
+        }
 
+        if(depth == 1.0){
+            //fanale_contribution = vec3(1.0, 0.0, 0.0);
+        }
     }
 
     vec4 t_color = texture(u_texture, v_texCoord.xy);  // Recupero il colore dalla texture
 
-    color = vec4(((finalColor * lamp_brightness) + (sun_contribution.xyz*10) + (fanale_contribution*100)) * t_color.rgb, 1.0);
+    color = vec4(((finalColor * lamp_brightness) + (sun_contribution.xyz*10) + (fanale_contribution)) * t_color.rgb, 1.0);
 }

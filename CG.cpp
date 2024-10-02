@@ -367,15 +367,15 @@ int main(void)
 
     int num_lights = 8;
     glm::vec3 light_pos[NUM_LIGHTS]{
-        glm::vec3(437.f, 75.f, 0.f),
-        glm::vec3(-437.f, 75.f, 0.f),
-        glm::vec3(0.f, 75.f, 437.f),
-        glm::vec3(0.f, 75.f, -437.f),
+        glm::vec3(440.f, 75.f, 0.f),
+        glm::vec3(-440.f, 75.f, 0.f),
+        glm::vec3(0.f, 75.f, 440.f),
+        glm::vec3(0.f, 75.f, -440.f),
 
-        glm::vec3(309.f, 75.f, 309.f),
-        glm::vec3(-309.f, 75.f, 309.f),
-        glm::vec3(309.f, 75.f, -309.f),
-        glm::vec3(-309.f, 75.f, -309.f)
+        glm::vec3(311.12f, 75.f, 311.12f),
+        glm::vec3(-311.12f, 75.f, 311.12f),
+        glm::vec3(311.12f, 75.f, -311.12f),
+        glm::vec3(-311.12f, 75.f, -311.12f)
 
     };
 
@@ -390,6 +390,14 @@ int main(void)
         glm::vec3(0.9f, 0.9f, 0.9f)
     };
 
+    glm::mat4 light_view[NUM_LIGHTS];
+
+    for (int i = 0; i < NUM_LIGHTS; i++){
+        light_view[i] = glm::lookAt(light_pos[i], light_pos[i] + glm::vec3(.0f, -1.0f, .0f), glm::vec3(.0f, .0f, 1.f));
+    }
+
+    glm::mat4 proj_lamp = glm::perspective(glm::radians(45.f), 1.f, 5.f, 100.f);
+
     float lampDir[3] = {0.0f, -1.0f, 0.0f};
     float cutoff = 60.0f;
     float innerCutoff = 1.0f;
@@ -401,6 +409,9 @@ int main(void)
     shader.setUniform3fv("uLightPos", num_lights, light_pos);
     shader.setUniform3fv("uLightColor", num_lights, light_color);
     shader.setUniform1i("numLights", num_lights);
+    
+    shader.setUniformMat4f("proj_lamp", proj_lamp);
+    shader.setUniformMat4fv("view_lamp", NUM_LIGHTS, light_view[0]);
 
     //Carica la texture dal file e la collega
     Texture texture("res/textures/grass_tile.png");
@@ -428,6 +439,7 @@ int main(void)
     float speed = 0.0f;
 
     //Definizione del framebuffer e della texture che contiene la depth map
+    //Nello slot 6 viene salvata la texture per i fanali
     glActiveTexture(GL_TEXTURE6);
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
@@ -449,6 +461,56 @@ int main(void)
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //Definizione del framebuffer e della texture che contiene la depth map
+    //Nello slot 8 viene salvata la texture per il sole
+    glActiveTexture(GL_TEXTURE8);
+    unsigned int depthMap_sun;
+    glGenTextures(1, &depthMap_sun);
+    glBindTexture(GL_TEXTURE_2D, depthMap_sun);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+    unsigned int depthMapFBO_sun;
+    glGenFramebuffers(1, &depthMapFBO_sun);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO_sun);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap_sun, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //UP
+    glm::mat4 sun_view = glm::lookAt(glm::vec3(0.0f, 1500.0f, 0.0f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
+    glm::mat4 sun_proj = glm::ortho(-500.f, 500.f, -500.f, 500.f, 1000.0f, 1501.0f);
+
+    shader.setUniformMat4f("view_sun", sun_view);
+    shader.setUniformMat4f("proj_sun", sun_proj);
+
+    unsigned int depthMap_lamp[NUM_LIGHTS];
+    unsigned int depthMapFBO_lamp[NUM_LIGHTS];
+
+    for (int i = 0; i < NUM_LIGHTS; i++) {
+        glActiveTexture(GL_TEXTURE9 + i);
+        glGenTextures(1, &(depthMap_lamp[i]));
+        glBindTexture(GL_TEXTURE_2D, depthMap_lamp[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+        glGenFramebuffers(1, &(depthMapFBO_lamp[i]));
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO_lamp[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap_lamp[i], 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
     Shader depthmap_shader("Shader/depthmap.shader");
 
@@ -549,7 +611,7 @@ int main(void)
 
     shader.unBind();
 
-    /*float prova[] = {
+    float prova[] = {
         -10.f, 0.f, -10.f, 0.f, 0.f,
         -10.f, 0.f, 10.f, 0.f, 1.f,
         10.f, 0.f, -10.f, 1.f, 0.f,
@@ -563,9 +625,12 @@ int main(void)
     VertexBuffer vb_prova(prova, 20 * sizeof(float));
     va_prova.addBuffer(vb_prova, layout);
 
-    IndexBuffer ib_prova(ind_prova, 6);*/
+    IndexBuffer ib_prova(ind_prova, 6);
 
-
+    int vecTexLamp[NUM_LIGHTS];
+    for (int i = 0; i < NUM_LIGHTS; i++) {
+        vecTexLamp[i] = 9 + i;
+    }
 
     //LOOP DI RENDERING
     while (!glfwWindowShouldClose(window))
@@ -591,19 +656,22 @@ int main(void)
 
         shader.bind();
         shader.setUniform1i("shadowMap_texture", 6);
+        shader.setUniform1i("shadowMap_texture_sun", 8);
+        shader.setUniform1iv("shadowMap_texture_lamp", NUM_LIGHTS, vecTexLamp);
+        
 
         shader.setUniformMat4f("u_MVP", mvp);
         shader.setUniformMat4f("uModel", model);
         
-        //shader.setUniform1i("u_texture", 6);
-        //renderer.draw(va_prova, ib_prova, shader);
+        shader.setUniform1i("u_texture", 6);
+        renderer.draw(va_prova, ib_prova, shader);
 
         //Rendering del terreno
         shader.setUniform1i("u_texture", 0);
         renderer.draw(va_terrain, ib_terrain, shader);
 
         //Rendering della strada
-        shader.setUniform1i("isStreet", 1);
+        shader.setUniform1i("isStreet", 1); //Necessario per il normal map
         shader.setUniform1i("u_texture", 1);
         renderer.draw(va_road, ib_road, shader);
         shader.setUniform1i("isStreet", 0);
@@ -644,13 +712,12 @@ int main(void)
 
         //Creazione della depthMap usata per calcolare le ombre generate dai fanali
         depthmap_shader.bind();
-        depthmap_shader.setUniform1f("uPlaneApprox", 0.5f);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        /*glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         drawShadowMap(fanali, proj_fanale, depthmap_shader, renderer, va_terrain, ib_terrain, va_road, ib_road, car, lamp, tree, objRot, scale_factor, objTranslation, tree_pos);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
 
         shader.bind();
 
@@ -724,6 +791,27 @@ int main(void)
             }
         }
 
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+        drawShadowMap(fanali, proj_fanale, depthmap_shader, renderer, va_terrain, ib_terrain, va_road, ib_road, car, lamp, tree, objRot, scale_factor, objTranslation, tree_pos);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO_sun);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap_sun, 0);
+        drawShadowMap(sun_view, sun_proj, depthmap_shader, renderer, va_terrain, ib_terrain, va_road, ib_road, car, lamp, tree, objRot, scale_factor, objTranslation, tree_pos);
+
+        for (int i = 0; i < NUM_LIGHTS; i++) {
+            glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO_lamp[i]);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            drawShadowMap(light_view[i], proj_lamp, depthmap_shader, renderer, va_terrain, ib_terrain, va_road, ib_road, car, lamp, tree, objRot, scale_factor, objTranslation, tree_pos);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+
+
+
         {   //Finestra di ImGui
             //Gestione della posizione della scena con i tasti della tastiera
             if (!camera_lock) {
@@ -766,7 +854,7 @@ int main(void)
 
             if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
                 camera_lock = false;
-                view = glm::lookAt(glm::vec3(0.0f, 500.0f, -1500.0f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+                view = glm::lookAt(glm::vec3(0.0f, 500.0f,-1500.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
             }
             if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
                 camera_lock = false;

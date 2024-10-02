@@ -69,6 +69,10 @@ public:
         glUniform1f(getUniformLocation(name), v);
     }
 
+    void setUniform1iv(const string& name, int num, int v[]) {
+        glUniform1iv(getUniformLocation(name), num, v);
+    }
+
 	void setUniform1i(const string& name, int value) {
 		glUniform1i(getUniformLocation(name), value);
 	}
@@ -76,6 +80,10 @@ public:
 	void setUniformMat4f(const string& name, const glm::mat4& matrix) {
 		glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, &matrix[0][0]);
 	}
+
+    void setUniformMat4fv(const string& name, int num, const glm::mat4& matrix) {
+        glUniformMatrix4fv(getUniformLocation(name), num, GL_FALSE, &matrix[0][0]);
+    }
 
 private:
     ShaderProgramSource ParseShader(const string& filepath) {
